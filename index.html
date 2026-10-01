@@ -126,6 +126,23 @@ td.inc { color: var(--good); }
 .empty { color: var(--ink-soft); padding: 18px 0; margin: 0; }
 .cat-tag { display: inline-flex; align-items: center; gap: 6px; }
 
+.tabs { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+.tabs button { background: none; border: 0; border-radius: 999px; padding: 7px 18px; font-weight: 500; color: var(--ink-soft); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--card); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-soft); margin: -6px 0 10px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.chart-scroll { overflow-x: auto; }
+.chart-scroll svg { display: block; min-width: 560px; width: 100%; height: auto; }
+.chart-scroll .mcol { cursor: pointer; }
+.chart-scroll .mcol:hover .hl, .chart-scroll .mcol:focus .hl { fill: var(--paper); }
+.hint { font-size: 13px; color: var(--ink-soft); margin: 8px 0 0; }
+.kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.kv:last-child { border-bottom: 0; }
+.kv span:first-child { color: var(--ink-soft); }
+.kv span:last-child { font-variant-numeric: tabular-nums; font-weight: 500; }
+td.neg { color: var(--over); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--paper); }
 .foot { margin-top: 28px; font-size: 13px; color: var(--ink-soft); }
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--card); padding: 9px 16px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .toast.show { opacity: 1; }
@@ -134,6 +151,12 @@ td.inc { color: var(--good); }
 </head>
 <body>
 <div class="wrap">
+  <nav class="tabs" role="tablist" aria-label="View">
+    <button role="tab" id="tabMonth" aria-selected="true">This month</button>
+    <button role="tab" id="tabSummary" aria-selected="false">Summary</button>
+  </nav>
+
+  <div id="monthView">
   <header class="top">
     <div class="month-nav">
       <button id="prev" aria-label="Previous month">‹</button>
@@ -200,6 +223,46 @@ td.inc { color: var(--good); }
       <h2 id="txTitle">Transactions</h2>
       <div class="tx-scroll" id="txList"></div>
     </section>
+  </div>
+
+  </div>
+
+  <div id="summaryView" hidden>
+    <header class="top">
+      <div class="month-nav">
+        <button id="yPrev" aria-label="Previous year">‹</button>
+        <div class="month-label" id="yearLabel"></div>
+        <button id="yNext" aria-label="Next year">›</button>
+      </div>
+      <div class="tools"><button class="ghost" id="exportYear">Export year (CSV)</button></div>
+    </header>
+
+    <section class="hero">
+      <p class="hero-caption" id="sCaption"></p>
+      <div class="left" id="sBig"></div>
+      <div class="hero-figs" id="sFigs"></div>
+    </section>
+
+    <div class="grid">
+      <section class="panel wide">
+        <h2>Income and spending by month</h2>
+        <div class="legend"><span><i style="background:var(--good)"></i>Income</span><span><i style="background:var(--brass)"></i>Spent</span></div>
+        <div class="chart-scroll" id="sChart"></div>
+        <p class="hint">Tap a month to open it.</p>
+      </section>
+      <section class="panel">
+        <h2>Where the money went</h2>
+        <div id="sCats"></div>
+      </section>
+      <section class="panel">
+        <h2>Pesos</h2>
+        <div id="sPhp"></div>
+      </section>
+      <section class="panel wide">
+        <h2>Month by month</h2>
+        <div class="tx-scroll" id="sTable"></div>
+      </section>
+    </div>
   </div>
 
   <p class="foot">Your data is saved in this browser only. Back up regularly, and use Restore to move it to another device.</p>
@@ -506,6 +569,144 @@ td.inc { color: var(--good); }
       } catch (e) { toast("That file isn't a budget backup"); }
     };
     r.readAsText(f); this.value = "";
+  };
+
+  // ---------- Summary view ----------
+  var sYear = view.y;
+  var MONTHS_SHORT = [];
+  for (var mi = 0; mi < 12; mi++) MONTHS_SHORT.push(new Date(2000, mi, 1).toLocaleDateString(undefined, { month: "short" }));
+
+  function yearData(y) {
+    var months = [];
+    for (var i = 0; i < 12; i++) months.push({ income: 0, spent: 0, php: 0, phpGbp: 0, count: 0 });
+    var cats = {}, php = 0, phpGbp = 0;
+    state.tx.forEach(function (t) {
+      if (+t.date.slice(0, 4) !== y) return;
+      var m = months[+t.date.slice(5, 7) - 1];
+      m.count++;
+      if (t.type === "income") { m.income += t.amount; return; }
+      m.spent += t.amount;
+      cats[t.category] = (cats[t.category] || 0) + t.amount;
+      if (t.cur === "PHP") { m.php += t.orig; m.phpGbp += t.amount; php += t.orig; phpGbp += t.amount; }
+    });
+    return { months: months, cats: cats, php: php, phpGbp: phpGbp };
+  }
+
+  function renderSummary() {
+    $("yearLabel").textContent = sYear;
+    var d = yearData(sYear);
+    var income = 0, spent = 0, active = 0;
+    d.months.forEach(function (m) { income += m.income; spent += m.spent; if (m.count) active++; });
+    var net = income - spent;
+
+    if (income > 0) {
+      $("sCaption").textContent = net >= 0 ? "Saved in " + sYear : "Overspent in " + sYear;
+      $("sBig").textContent = money(Math.abs(net));
+      $("sBig").classList.toggle("neg", net < 0);
+    } else {
+      $("sCaption").textContent = "Spent in " + sYear;
+      $("sBig").textContent = money(spent);
+      $("sBig").classList.remove("neg");
+    }
+    $("sFigs").innerHTML =
+      "<span>Income <b>" + money(income) + "</b></span>" +
+      "<span>Spent <b>" + money(spent) + "</b></span>" +
+      (active ? "<span>Average spend <b>" + money(spent / active) + "</b> a month</span>" : "") +
+      (income > 0 ? "<span>Savings rate <b>" + Math.round(net / income * 100) + "%</b></span>" : "");
+
+    // Bar chart
+    var W = 720, H = 240, top = 16, bottom = 28, left = 8, colW = (W - left * 2) / 12;
+    var max = 0;
+    d.months.forEach(function (m) { max = Math.max(max, m.income, m.spent); });
+    if (!active) {
+      $("sChart").innerHTML = '<p class="empty">No transactions in ' + sYear + ' yet.</p>';
+    } else {
+      var plotH = H - top - bottom, bw = Math.min(18, colW / 3.2), svg = "";
+      svg += '<line x1="0" x2="' + W + '" y1="' + (H - bottom) + '" y2="' + (H - bottom) + '" stroke="var(--line)"/>';
+      d.months.forEach(function (m, i) {
+        var x = left + i * colW, cx = x + colW / 2;
+        var hi = max ? m.income / max * plotH : 0, hs = max ? m.spent / max * plotH : 0;
+        var label = MONTHS_SHORT[i] + ": income " + money(m.income) + ", spent " + money(m.spent);
+        svg += '<g class="mcol" data-month="' + i + '" tabindex="0" role="button" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>' +
+          '<rect class="hl" x="' + (x + 2) + '" y="0" width="' + (colW - 4) + '" height="' + (H - bottom) + '" rx="6" fill="transparent"/>' +
+          '<rect x="' + (cx - bw - 1) + '" y="' + (H - bottom - hi) + '" width="' + bw + '" height="' + hi + '" rx="2" fill="var(--good)"/>' +
+          '<rect x="' + (cx + 1) + '" y="' + (H - bottom - hs) + '" width="' + bw + '" height="' + hs + '" rx="2" fill="var(--brass)"/>' +
+          '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="var(--ink-soft)">' + esc(MONTHS_SHORT[i]) + '</text></g>';
+      });
+      $("sChart").innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Monthly income and spending for ' + sYear + '">' + svg + "</svg>";
+    }
+
+    // Categories
+    var catRows = Object.keys(d.cats).map(function (id) { return { id: id, v: d.cats[id], c: catById(id) }; })
+      .sort(function (a, b) { return b.v - a.v; });
+    $("sCats").innerHTML = catRows.length ? catRows.map(function (r) {
+      var name = r.c ? r.c.name : "Removed category", color = r.c ? r.c.color : "#999";
+      var pct = spent ? r.v / spent * 100 : 0;
+      var budgetNote = "";
+      if (r.c && r.c.budget > 0 && active) {
+        var allowed = r.c.budget * active, diff = allowed - r.v;
+        budgetNote = " · " + (diff >= 0 ? money(diff) + " under budget" : money(-diff) + " over budget");
+      }
+      return '<div class="env"><div class="env-row"><span class="dot" style="background:' + color + '"></span>' +
+        '<span class="env-name">' + esc(name) + '</span><span class="env-amt">' + money(r.v) + '</span></div>' +
+        '<div class="track"><i style="width:' + pct + '%;background:' + color + '"></i></div>' +
+        '<div class="env-note">' + Math.round(pct) + "% of spending · " + money(r.v / (active || 1)) + " a month" + budgetNote + "</div></div>";
+    }).join("") : '<p class="empty">No spending logged this year.</p>';
+
+    // Pesos
+    $("sPhp").innerHTML = d.php > 0 ?
+      '<div class="kv"><span>Spent in pesos</span><span>' + peso(d.php) + "</span></div>" +
+      '<div class="kv"><span>Worth in GBP</span><span>' + money(d.phpGbp) + "</span></div>" +
+      '<div class="kv"><span>Average rate you got</span><span>£1 = ₱' + (d.php / d.phpGbp).toFixed(2) + "</span></div>" +
+      '<div class="kv"><span>Share of all spending</span><span>' + Math.round(d.phpGbp / spent * 100) + "%</span></div>" +
+      (state.rate ? '<div class="kv"><span>Today\'s rate</span><span>£1 = ₱' + (1 / state.rate.value).toFixed(2) + "</span></div>" : "")
+      : '<p class="empty">No peso spending this year. Pick ₱ PHP when adding an expense to track it here.</p>';
+
+    // Month table
+    if (!active) { $("sTable").innerHTML = '<p class="empty">Nothing to show yet.</p>'; return; }
+    var rows = "", tI = 0, tS = 0;
+    d.months.forEach(function (m, i) {
+      if (!m.count) return;
+      var n = m.income - m.spent; tI += m.income; tS += m.spent;
+      var full = new Date(sYear, i, 1).toLocaleDateString(undefined, { month: "long" });
+      rows += '<tr class="clickable" data-month="' + i + '"><td>' + full + '</td><td class="num">' + money(m.income) + '</td><td class="num">' + money(m.spent) +
+        '</td><td class="num' + (n < 0 ? " neg" : "") + '">' + money(n) + '</td><td class="num">' + (m.php ? peso(m.php) : "–") + "</td></tr>";
+    });
+    rows += '<tr><td><b>Total</b></td><td class="num"><b>' + money(tI) + '</b></td><td class="num"><b>' + money(tS) + '</b></td><td class="num' + (tI - tS < 0 ? " neg" : "") + '"><b>' + money(tI - tS) + '</b></td><td class="num"><b>' + (d.php ? peso(d.php) : "–") + "</b></td></tr>";
+    $("sTable").innerHTML = "<table><thead><tr><th>Month</th><th style='text-align:right'>Income</th><th style='text-align:right'>Spent</th><th style='text-align:right'>Left over</th><th style='text-align:right'>Pesos spent</th></tr></thead><tbody>" + rows + "</tbody></table>";
+  }
+
+  function showTab(which) {
+    var sum = which === "summary";
+    $("monthView").hidden = sum; $("summaryView").hidden = !sum;
+    $("tabMonth").setAttribute("aria-selected", sum ? "false" : "true");
+    $("tabSummary").setAttribute("aria-selected", sum ? "true" : "false");
+    if (sum) { sYear = view.y; renderSummary(); } else render();
+    window.scrollTo(0, 0);
+  }
+  function openMonth(i) { view.y = sYear; view.m = i; defaultDate(); showTab("month"); }
+
+  $("tabMonth").onclick = function () { showTab("month"); };
+  $("tabSummary").onclick = function () { showTab("summary"); };
+  $("yPrev").onclick = function () { sYear--; renderSummary(); };
+  $("yNext").onclick = function () { sYear++; renderSummary(); };
+  $("summaryView").addEventListener("click", function (e) {
+    var el = e.target.closest("[data-month]"); if (el) openMonth(+el.dataset.month);
+  });
+  $("summaryView").addEventListener("keydown", function (e) {
+    var el = e.target.closest && e.target.closest(".mcol");
+    if (el && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); openMonth(+el.dataset.month); }
+  });
+  $("exportYear").onclick = function () {
+    var d = yearData(sYear);
+    var rows = [["Month", "Income (GBP)", "Spent (GBP)", "Left over (GBP)", "Pesos spent", "Pesos in GBP"]];
+    d.months.forEach(function (m, i) {
+      if (!m.count) return;
+      rows.push([sYear + "-" + pad(i + 1), m.income.toFixed(2), m.spent.toFixed(2), (m.income - m.spent).toFixed(2), m.php.toFixed(2), m.phpGbp.toFixed(2)]);
+    });
+    rows.push([], ["Category", "Spent (GBP)"]);
+    Object.keys(d.cats).forEach(function (id) { var c = catById(id); rows.push([c ? c.name : "Removed category", d.cats[id].toFixed(2)]); });
+    download("budget-summary-" + sYear + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
   };
 
   setType("expense"); defaultDate(); render(); renderRate(); updatePreview(); fetchRate(false);
