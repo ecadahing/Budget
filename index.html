@@ -91,6 +91,8 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .rate { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
 .rate-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .rate-line span { color: var(--ink-soft); font-size: 13px; }
+.rate-line .small-btn { margin-left: auto; }
+.rate-actions[hidden], .wise-row[hidden] { display: none; }
 .rate-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .rate-actions a { text-decoration: none; display: inline-block; }
 .wise-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
@@ -143,6 +145,7 @@ td.inc { color: var(--good); }
 .padd { display: flex; gap: 6px; margin: 10px 0; }
 .padd input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 .pactions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.pactions + .pactions { margin-top: 10px; }
 .small-btn.danger { color: var(--over); }
 .tabs button { background: none; border: 0; border-radius: 999px; padding: 7px 18px; font-weight: 500; color: var(--ink-soft); }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--card); }
@@ -187,8 +190,6 @@ tr.clickable:hover td { background: var(--paper); }
 .cc-totals span { display: block; font-size: 13px; color: var(--ink-soft); }
 .cc-totals b { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 22px; font-variant-numeric: tabular-nums; }
 .cc-totals b.neg { color: var(--over); }
-tr.total-row td { border-top: 2px solid var(--ink); }
-tr.grp.total-row td { border-top: 0; }
 tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); font-weight: 600; }
 .bills-sum { margin: -6px 0 12px; color: var(--ink-soft); font-size: 15px; }
 .bills-sum b { color: var(--ink); }
@@ -244,6 +245,11 @@ td.paid { color: var(--ink-soft); }
         <button class="small-btn" id="pAdd">Add profile</button>
       </div>
       <div class="pactions">
+        <button class="small-btn" id="backup">Back up this profile</button>
+        <button class="small-btn" id="restoreBtn">Restore from backup</button>
+        <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+      </div>
+      <div class="pactions">
         <button class="small-btn" id="pRename">Rename this profile</button>
         <button class="small-btn danger" id="pDelete">Delete this profile</button>
       </div>
@@ -260,16 +266,12 @@ td.paid { color: var(--ink-soft); }
     </div>
     <div class="tools">
       <button class="ghost" id="exportCsv">Export month (CSV)</button>
-      <button class="ghost" id="backup">Back up all</button>
-      <button class="ghost" id="restoreBtn">Restore</button>
-      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
     </div>
   </header>
 
   <section class="hero" aria-live="polite">
     <p class="hero-caption" id="heroCaption">Left to spend this month</p>
     <div class="left" id="left"></div>
-    <div class="bar" id="bar" aria-hidden="true"></div>
     <div class="hero-figs" id="heroFigs"></div>
   </section>
 
@@ -293,8 +295,8 @@ td.paid { color: var(--ink-soft); }
       <p class="err" id="err"></p>
 
       <div class="rate">
-        <div class="rate-line"><b id="rateText">Loading rate…</b><span id="rateMeta"></span></div>
-        <div class="rate-actions">
+        <div class="rate-line"><b id="rateText">Loading rate…</b><span id="rateMeta"></span><button class="small-btn" id="rateEdit" aria-expanded="false">Edit</button></div>
+        <div class="rate-actions" id="rateActions" hidden>
           <button class="ghost" id="refreshRate">Refresh live rate</button>
           <button class="ghost" id="wiseToggle">Use Wise rate</button>
           <a class="ghost" href="https://wise.com/gb/currency-converter/gbp-to-php-rate" target="_blank" rel="noopener">Open Wise</a>
@@ -391,14 +393,10 @@ td.paid { color: var(--ink-soft); }
         <h2>Credit cards</h2>
         <div class="tx-scroll" id="sCards"></div>
       </section>
-      <section class="panel wide">
-        <h2>Month by month</h2>
-        <div class="tx-scroll" id="sTable"></div>
-      </section>
     </div>
   </div>
 
-  <p class="foot">Your data is saved in this browser only. Back up regularly, and use Restore to move it to another device.</p>
+  <p class="foot">Your data is saved in this browser only. Back up from the profile menu now and then, and use Restore to move it to another device.</p>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -508,7 +506,8 @@ td.paid { color: var(--ink-soft); }
     if (!r) { $("rateText").textContent = "No exchange rate yet"; $("rateMeta").textContent = ""; return; }
     $("rateText").textContent = "£1 = ₱" + (1 / r.value).toFixed(4);
     var when = new Date(r.fetchedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-    $("rateMeta").textContent = r.manual ? "Wise rate you entered, " + when : r.source + ", checked " + when;
+    $("rateMeta").textContent = r.manual ? "Wise rate · " + when : "Live · " + when;
+    $("rateMeta").title = r.manual ? "Wise rate you entered" : r.source;
   }
   function updatePreview() {
     var amt = parseFloat($("amt").value);
@@ -650,24 +649,17 @@ td.paid { color: var(--ink-soft); }
     });
     var totalBudget = state.categories.reduce(function (s, c) { return s + (c.budget || 0); }, 0);
 
-    // Hero: income-based if any income logged, otherwise budget-based
-    var base = income > 0 ? income : totalBudget;
-    var left = base - spent;
-    $("heroCaption").textContent = income > 0 ? "Left from this month's income"
-      : totalBudget > 0 ? "Left in this month's budgets" : "Spent this month";
-    $("left").textContent = (income > 0 || totalBudget > 0) ? money(left) : money(spent);
-    $("left").classList.toggle("neg", (income > 0 || totalBudget > 0) && left < 0);
+    // Hero: always measured against your monthly budgets, so it doesn't jump when income arrives
+    var left = totalBudget - spent;
+    $("heroCaption").textContent = totalBudget > 0 ? "Left in this month's budgets" : "Spent this month · set budgets below to see what's left";
+    $("left").textContent = totalBudget > 0 ? money(left) : money(spent);
+    $("left").classList.toggle("neg", totalBudget > 0 && left < 0);
 
-    var bar = "", denom = Math.max(base, spent) || 1;
-    state.categories.forEach(function (c) {
-      var v = byCat[c.id] || 0;
-      if (v > 0) bar += '<span style="width:' + (v / denom * 100) + '%;background:' + c.color + '" title="' + esc(c.name) + '"></span>';
-    });
-    $("bar").innerHTML = bar + '<span class="rest"></span>';
     $("heroFigs").innerHTML =
       "<span>Income <b>" + money(income) + "</b></span>" +
       "<span>Spent <b>" + money(spent) + "</b></span>" +
       (totalBudget > 0 ? "<span>Budgeted <b>" + money(totalBudget) + "</b></span>" : "") +
+      (income > 0 ? "<span>Income left <b" + (income - spent < 0 ? ' style="color:var(--over)"' : "") + ">" + money(income - spent) + "</b></span>" : "") +
       (phpSpent > 0 ? "<span>Spent in pesos <b>" + peso(phpSpent) + "</b> (" + money(phpSpentGbp) + ")</span>" : "");
 
     // Category select
@@ -868,6 +860,12 @@ td.paid { color: var(--ink-soft); }
   $("amt").addEventListener("input", updatePreview);
   $("cur").onchange = updatePreview;
   $("refreshRate").onclick = function () { fetchRate(true); };
+  $("rateEdit").onclick = function () {
+    var a = $("rateActions"), open = a.hidden;
+    a.hidden = !open; this.setAttribute("aria-expanded", open ? "true" : "false");
+    this.textContent = open ? "Done" : "Edit";
+    if (!open) $("wiseRow").hidden = true;
+  };
   $("wiseToggle").onclick = function () {
     var row = $("wiseRow"); row.hidden = !row.hidden;
     if (!row.hidden) { if (state.rate) $("wiseRate").value = (1 / state.rate.value).toFixed(4); $("wiseRate").focus(); }
@@ -877,7 +875,8 @@ td.paid { color: var(--ink-soft); }
     if (!(p > 1)) { toast("Enter how many pesos £1 buys, e.g. 75.50"); return; }
     var v = 1 / p;
     state.rate = { value: v, source: "Wise", date: today(), fetchedAt: Date.now(), manual: true };
-    save(); renderRate(); updatePreview(); $("wiseRow").hidden = true; toast("Wise rate saved");
+    save(); renderRate(); updatePreview(); $("wiseRow").hidden = true; $("rateActions").hidden = true;
+    $("rateEdit").textContent = "Edit"; $("rateEdit").setAttribute("aria-expanded", "false"); toast("Wise rate saved");
   };
 
   function download(name, text, type) {
@@ -977,7 +976,7 @@ td.paid { color: var(--ink-soft); }
       d.months.forEach(function (m, i) {
         var x = left + i * colW, cx = x + colW / 2;
         var hi = max ? m.income / max * plotH : 0, hs = max ? m.spent / max * plotH : 0;
-        var label = MONTHS_SHORT[i] + ": income " + money(m.income) + ", spent " + money(m.spent);
+        var label = MONTHS_SHORT[i] + ": income " + money(m.income) + ", spent " + money(m.spent) + ", left over " + money(m.income - m.spent);
         svg += '<g class="mcol" data-month="' + i + '" tabindex="0" role="button" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>' +
           '<rect class="hl" x="' + (x + 2) + '" y="0" width="' + (colW - 4) + '" height="' + (H - bottom) + '" rx="6" fill="transparent"/>' +
           '<rect x="' + (cx - bw - 1) + '" y="' + (H - bottom - hi) + '" width="' + bw + '" height="' + hi + '" rx="2" fill="var(--good)"/>' +
@@ -1009,8 +1008,7 @@ td.paid { color: var(--ink-soft); }
       '<div class="kv"><span>Spent in pesos</span><span>' + peso(d.php) + "</span></div>" +
       '<div class="kv"><span>Worth in GBP</span><span>' + money(d.phpGbp) + "</span></div>" +
       '<div class="kv"><span>Average rate you got</span><span>£1 = ₱' + (d.php / d.phpGbp).toFixed(2) + "</span></div>" +
-      '<div class="kv"><span>Share of all spending</span><span>' + Math.round(d.phpGbp / spent * 100) + "%</span></div>" +
-      (state.rate ? '<div class="kv"><span>Today\'s rate</span><span>£1 = ₱' + (1 / state.rate.value).toFixed(2) + "</span></div>" : "")
+      '<div class="kv"><span>Share of all spending</span><span>' + Math.round(d.phpGbp / spent * 100) + "%</span></div>"
       : '<p class="empty">No peso spending this year. Pick ₱ PHP when adding an expense to track it here.</p>';
 
     // Credit cards for the year
@@ -1019,13 +1017,12 @@ td.paid { color: var(--ink-soft); }
     } else {
       var gBal = 0, gAvail = 0, gLim = 0, gCh = 0, gPd = 0, anyLim = false, crow = "";
       cardGroups().forEach(function (g) {
-        var sBal = 0, sLim = 0, sAvail = 0, gl = false;
         crow += '<tr class="grp"><td colspan="6">' + g.title + "</td></tr>";
         g.cards.forEach(function (c) {
           var st = cardStats(c, "", sYear), lim = c.limit || 0, avail = lim - st.balance;
-          sBal += st.balance; gBal += cardToGbp(c, st.balance);
+          gBal += cardToGbp(c, st.balance);
           gCh += cardToGbp(c, st.yCharged); gPd += cardToGbp(c, st.yPaid);
-          if (lim > 0) { sLim += lim; sAvail += avail; gLim += cardToGbp(c, lim); gAvail += cardToGbp(c, avail); gl = true; anyLim = true; }
+          if (lim > 0) { gLim += cardToGbp(c, lim); gAvail += cardToGbp(c, avail); anyLim = true; }
           var availCell = lim > 0
             ? '<td class="num' + (avail < 0 ? " neg" : "") + '"><b>' + cm(c, avail) + '</b><span class="orig">' + Math.max(0, Math.round(avail / lim * 100)) + "% free</span></td>"
             : '<td class="num paid">No limit set</td>';
@@ -1034,38 +1031,17 @@ td.paid { color: var(--ink-soft); }
             (isPH(c) && state.rate ? '</b><span class="orig">≈ ' + money(cardToGbp(c, st.balance)) + "</span>" : "</b>") + "</td>" +
             '<td class="num"><input class="bill-amt" type="number" min="0" step="1" inputmode="decimal" data-cardlimit="' + c.id + '" value="' + (lim || "") + '" placeholder="Add limit" aria-label="Credit limit for ' + esc(c.name) + '"></td>' + availCell + "</tr>";
         });
-        if (g.cards.length > 1) {
-          var f = g.key === "PHP" ? peso : money;
-          crow += '<tr><td><b>' + g.title + ' total</b></td><td></td><td></td><td class="num"><b>' + f(sBal) + '</b></td><td class="num"><b>' + (gl ? f(sLim) : "–") +
-            '</b></td><td class="num' + (sAvail < 0 ? " neg" : "") + '"><b>' + (gl ? f(sAvail) : "–") + "</b></td></tr>";
-        }
       });
       var hasPH = state.cards.some(isPH);
-      crow += '<tr class="grp total-row"><td colspan="6">Total, all cards' + (hasPH ? " (in £, pesos at today's rate)" : "") + "</td></tr>" +
-        '<tr class="total-row"><td><b>All cards</b></td><td class="num"><b>' + money(gCh) + '</b></td><td class="num"><b>' + money(gPd) +
-        '</b></td><td class="num"><b>' + money(gBal) + '</b></td><td class="num"><b>' + (anyLim ? money(gLim) : "–") +
-        '</b></td><td class="num' + (gAvail < 0 ? " neg" : "") + '"><b>' + (anyLim ? money(gAvail) : "–") + "</b>" +
-        (anyLim && gLim > 0 ? '<span class="orig">' + Math.max(0, Math.round(gAvail / gLim * 100)) + "% free</span>" : "") + "</td></tr>";
       var totals = '<div class="cc-totals">' +
-        '<div><span>Total owed</span><b>' + money(gBal) + "</b></div>" +
-        (anyLim ? '<div><span>Total available</span><b class="' + (gAvail < 0 ? "neg" : "") + '">' + money(gAvail) + "</b></div>" +
+        '<div><span>Owed today</span><b>' + money(gBal) + "</b></div>" +
+        (anyLim ? '<div><span>Available today</span><b class="' + (gAvail < 0 ? "neg" : "") + '">' + money(gAvail) + "</b></div>" +
           '<div><span>Credit used</span><b>' + (gLim > 0 ? Math.round(gBal / gLim * 100) : 0) + "%</b></div>" : "") +
-        '<div><span>Paid off this year</span><b>' + money(gPd) + "</b></div></div>";
-      $("sCards").innerHTML = totals + "<table><thead><tr><th>Card</th><th style='text-align:right'>Charged this year</th><th style='text-align:right'>Paid this year</th><th style='text-align:right'>Balance now</th><th style='text-align:right'>Limit</th><th style='text-align:right'>Available</th></tr></thead><tbody>" + crow + "</tbody></table>";
+        '<div><span>Paid off in ' + sYear + "</span><b>" + money(gPd) + "</b></div></div>" +
+        (hasPH ? '<p class="hint" style="margin:-6px 0 12px">Totals are in £, with peso cards at today\'s rate.</p>' : "");
+      $("sCards").innerHTML = totals + "<table><thead><tr><th>Card</th><th style='text-align:right'>Charged in " + sYear + "</th><th style='text-align:right'>Paid in " + sYear + "</th><th style='text-align:right'>Owed today</th><th style='text-align:right'>Limit</th><th style='text-align:right'>Available today</th></tr></thead><tbody>" + crow + "</tbody></table>";
     }
 
-    // Month table
-    if (!active) { $("sTable").innerHTML = '<p class="empty">Nothing to show yet.</p>'; return; }
-    var rows = "", tI = 0, tS = 0;
-    d.months.forEach(function (m, i) {
-      if (!m.count) return;
-      var n = m.income - m.spent; tI += m.income; tS += m.spent;
-      var full = new Date(sYear, i, 1).toLocaleDateString(undefined, { month: "long" });
-      rows += '<tr class="clickable" data-month="' + i + '"><td>' + full + '</td><td class="num">' + money(m.income) + '</td><td class="num">' + money(m.spent) +
-        '</td><td class="num' + (n < 0 ? " neg" : "") + '">' + money(n) + '</td><td class="num">' + (m.php ? peso(m.php) : "–") + "</td></tr>";
-    });
-    rows += '<tr><td><b>Total</b></td><td class="num"><b>' + money(tI) + '</b></td><td class="num"><b>' + money(tS) + '</b></td><td class="num' + (tI - tS < 0 ? " neg" : "") + '"><b>' + money(tI - tS) + '</b></td><td class="num"><b>' + (d.php ? peso(d.php) : "–") + "</b></td></tr>";
-    $("sTable").innerHTML = "<table><thead><tr><th>Month</th><th style='text-align:right'>Income</th><th style='text-align:right'>Spent</th><th style='text-align:right'>Left over</th><th style='text-align:right'>Pesos spent</th></tr></thead><tbody>" + rows + "</tbody></table>";
   }
 
   function showTab(which) {
