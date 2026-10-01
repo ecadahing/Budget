@@ -126,7 +126,24 @@ td.inc { color: var(--good); }
 .empty { color: var(--ink-soft); padding: 18px 0; margin: 0; }
 .cat-tag { display: inline-flex; align-items: center; gap: 6px; }
 
-.tabs { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
+.tabs { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.profile { position: relative; }
+.profile summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; font-weight: 500; }
+.profile summary::-webkit-details-marker { display: none; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-content: center; color: #fff; font-weight: 600; font-size: 14px; flex: none; }
+.caret { color: var(--ink-soft); font-size: 12px; }
+.pmenu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; width: min(300px, calc(100vw - 40px)); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 8px 24px rgba(20, 40, 30, .16); }
+.pmenu-title { margin: 0 0 8px; font-size: 13px; color: var(--ink-soft); }
+.prow { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-radius: 8px; padding: 6px; text-align: left; }
+.prow:hover { background: var(--paper); }
+.prow[aria-current="true"] { background: var(--paper); font-weight: 600; }
+.prow .avatar { width: 26px; height: 26px; font-size: 12px; }
+.prow small { margin-left: auto; color: var(--ink-soft); font-weight: 400; }
+.padd { display: flex; gap: 6px; margin: 10px 0; }
+.padd input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.pactions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.small-btn.danger { color: var(--over); }
 .tabs button { background: none; border: 0; border-radius: 999px; padding: 7px 18px; font-weight: 500; color: var(--ink-soft); }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--card); }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-soft); margin: -6px 0 10px; }
@@ -143,18 +160,36 @@ td.inc { color: var(--good); }
 td.neg { color: var(--over); }
 tr.clickable { cursor: pointer; }
 tr.clickable:hover td { background: var(--paper); }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-.card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--paper); border-top: 4px solid var(--cc); }
-.card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.card-name { font-weight: 600; }
-.card-bal { font-family: "Young Serif", Georgia, serif; font-size: 30px; line-height: 1.1; margin: 8px 0 2px; font-variant-numeric: tabular-nums; }
-.card-sub { font-size: 13px; color: var(--ink-soft); }
-.card .track { background: var(--card); }
-.pay-row { display: flex; gap: 6px; margin-top: 10px; }
-.pay-row input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
-.add-card { display: grid; grid-template-columns: 1.2fr 1fr 1fr auto; gap: 8px; margin-top: 14px; }
-.add-card input { min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
-@media (max-width: 620px) { .add-card { grid-template-columns: 1fr 1fr; } .add-card input:first-child { grid-column: 1 / -1; } }
+.cc-group { margin-bottom: 14px; }
+.cc-group:last-child { margin-bottom: 0; }
+.cc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.cc-head b { color: var(--ink); font-weight: 600; }
+.cc-row { display: grid; grid-template-columns: 1fr auto auto auto; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.cc-row:last-child { border-bottom: 0; }
+.cc-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 500; }
+.cc-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-bal { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.cc-bal small { display: block; font-weight: 400; font-size: 12px; color: var(--ink-soft); }
+.cc-bal small.low { color: var(--over); }
+.mini { height: 4px; background: var(--paper); border-radius: 2px; overflow: hidden; margin-top: 4px; }
+.mini i { display: block; height: 100%; }
+.small-btn { background: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; font-size: 13px; }
+.small-btn:hover { border-color: var(--ink-soft); }
+.cc-pay { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; }
+.cc-pay input { flex: 1; min-width: 0; max-width: 200px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+.add-card { margin-top: 12px; }
+.add-card summary { cursor: pointer; font-weight: 500; color: var(--ink-soft); }
+.card-form { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr auto; gap: 8px; margin-top: 10px; align-items: end; }
+.card-form input, .card-form select { min-width: 0; width: 100%; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; font-size: 15px; }
+@media (max-width: 620px) { .card-form { grid-template-columns: 1fr 1fr; } .card-form input:first-child { grid-column: 1 / -1; } }
+.cc-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.cc-totals div { background: var(--paper); border-radius: 10px; padding: 10px 12px; }
+.cc-totals span { display: block; font-size: 13px; color: var(--ink-soft); }
+.cc-totals b { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 22px; font-variant-numeric: tabular-nums; }
+.cc-totals b.neg { color: var(--over); }
+tr.total-row td { border-top: 2px solid var(--ink); }
+tr.grp.total-row td { border-top: 0; }
+tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); font-weight: 600; }
 .bills-sum { margin: -6px 0 12px; color: var(--ink-soft); font-size: 15px; }
 .bills-sum b { color: var(--ink); }
 .bill { display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
@@ -194,10 +229,27 @@ td.paid { color: var(--ink-soft); }
 </head>
 <body>
 <div class="wrap">
+  <div class="topbar">
   <nav class="tabs" role="tablist" aria-label="View">
     <button role="tab" id="tabMonth" aria-selected="true">This month</button>
     <button role="tab" id="tabSummary" aria-selected="false">Summary</button>
   </nav>
+  <details class="profile" id="profileMenu">
+    <summary><span class="avatar" id="pAvatar"></span><span id="pName"></span><span class="caret">▾</span></summary>
+    <div class="pmenu">
+      <p class="pmenu-title">Profiles on this device</p>
+      <div id="pList"></div>
+      <div class="padd">
+        <input id="pNew" type="text" maxlength="24" placeholder="Name, e.g. Maria" aria-label="New profile name">
+        <button class="small-btn" id="pAdd">Add profile</button>
+      </div>
+      <div class="pactions">
+        <button class="small-btn" id="pRename">Rename this profile</button>
+        <button class="small-btn danger" id="pDelete">Delete this profile</button>
+      </div>
+    </div>
+  </details>
+  </div>
 
   <div id="monthView">
   <header class="top">
@@ -284,12 +336,16 @@ td.paid { color: var(--ink-soft); }
     <section class="panel wide">
       <h2>Credit cards</h2>
       <div id="cards"></div>
-      <div class="add-card">
-        <input id="cardName" type="text" placeholder="Card name, e.g. Amex" maxlength="30" aria-label="Card name">
-        <input id="cardOpen" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Current balance £" aria-label="Current balance in GBP">
-        <input id="cardLimit" type="number" step="1" min="0" inputmode="decimal" placeholder="Limit £ (optional)" aria-label="Credit limit in GBP">
-        <button class="ghost" id="addCard">Add card</button>
-      </div>
+      <details class="add-card">
+        <summary>Add a card</summary>
+        <div class="card-form">
+          <input id="cardName" type="text" placeholder="Card name, e.g. BDO" maxlength="30" aria-label="Card name">
+          <select id="cardCur" aria-label="Card country"><option value="GBP">UK card (£)</option><option value="PHP">PH card (₱)</option></select>
+          <input id="cardOpen" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Owed now" aria-label="Current balance owed">
+          <input id="cardLimit" type="number" step="1" min="0" inputmode="decimal" placeholder="Limit (optional)" aria-label="Credit limit">
+          <button class="ghost" id="addCard">Add card</button>
+        </div>
+      </details>
     </section>
 
     <section class="panel wide">
@@ -332,7 +388,7 @@ td.paid { color: var(--ink-soft); }
         <div id="sPhp"></div>
       </section>
       <section class="panel wide">
-        <h2>Credit cards this year</h2>
+        <h2>Credit cards</h2>
         <div class="tx-scroll" id="sCards"></div>
       </section>
       <section class="panel wide">
@@ -348,7 +404,15 @@ td.paid { color: var(--ink-soft); }
 
 <script>
 (function () {
-  var KEY = "budget-tracker-v1";
+  var BASE = "budget-tracker-v1", PKEY = "budget-tracker-profiles";
+  function keyFor(id) { return id === "main" ? BASE : BASE + ":" + id; }
+  var profiles = (function () {
+    try { var p = JSON.parse(localStorage.getItem(PKEY)); if (p && Array.isArray(p.list) && p.list.length) return p; } catch (e) {}
+    return { current: "main", list: [{ id: "main", name: "Me", color: "#2F6B4F" }] };
+  })();
+  if (!profiles.list.some(function (p) { return p.id === profiles.current; })) profiles.current = profiles.list[0].id;
+  function saveProfiles() { try { localStorage.setItem(PKEY, JSON.stringify(profiles)); } catch (e) {} }
+  var KEY = keyFor(profiles.current);
   var PALETTE = ["#2F6B4F", "#A87A22", "#3C6E91", "#8E4D6E", "#B0613A", "#5B7F2E", "#6A5ACD", "#3F8C8C", "#9C6B3E", "#7A7F87"];
   var DEFAULT = {
     currency: "GBP",
@@ -377,15 +441,16 @@ td.paid { color: var(--ink-soft); }
     catch (e) { toast("Couldn't save — browser storage is unavailable"); }
   }
 
-  var state = load();
-  // Everything is calculated in GBP. Older entries without a currency are GBP.
-  state.currency = "GBP";
-  state.tx.forEach(function (t) {
-    if (!t.cur) { t.cur = "GBP"; t.orig = t.amount; t.rate = 1; }
-  });
-  if (!state.rate) state.rate = null; // { value, source, date, fetchedAt, manual }
-  if (!Array.isArray(state.cards)) state.cards = []; // { id, name, opening, limit, color }
-  if (!Array.isArray(state.bills)) state.bills = []; // { id, name, amount, cur, due, category, pay }
+  function migrate(st) {
+    // Everything is calculated in GBP. Older entries without a currency are GBP.
+    st.currency = "GBP";
+    st.tx.forEach(function (t) { if (!t.cur) { t.cur = "GBP"; t.orig = t.amount; t.rate = 1; } });
+    if (!st.rate) st.rate = null; // { value, source, date, fetchedAt, manual }
+    if (!Array.isArray(st.cards)) st.cards = []; // { id, name, cur, opening, limit, color }
+    if (!Array.isArray(st.bills)) st.bills = []; // { id, name, amount, cur, due, category, pay }
+    return st;
+  }
+  var state = migrate(load());
   var now = new Date();
   var view = { y: now.getFullYear(), m: now.getMonth() };
   var txType = "expense";
@@ -456,14 +521,46 @@ td.paid { color: var(--ink-soft); }
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function catById(id) { return state.categories.find(function (c) { return c.id === id; }); }
   function cardById(id) { return state.cards.find(function (c) { return c.id === id; }); }
-  function cardStats(card, ym) {
-    var charged = 0, paid = 0, mCharged = 0, mPaid = 0;
-    state.tx.forEach(function (t) {
-      if (t.type === "expense" && t.pay === card.id) { charged += t.amount; if (t.date.slice(0, 7) === ym) mCharged += t.amount; }
-      if (t.type === "cardpay" && t.card === card.id) { paid += t.amount; if (t.date.slice(0, 7) === ym) mPaid += t.amount; }
-    });
-    return { balance: (card.opening || 0) + charged - paid, mCharged: mCharged, mPaid: mPaid };
+  function isPH(card) { return card && card.cur === "PHP"; }
+  function cm(card, n) { return isPH(card) ? peso(n) : money(n); }
+  function cardToGbp(card, n) { return isPH(card) ? (state.rate ? n * state.rate.value : 0) : n; }
+  // A transaction's value in the card's own currency
+  function inCard(card, t) {
+    if (t.cardAmt != null) return t.cardAmt;
+    if (!isPH(card)) return t.amount;
+    if (t.cur === "PHP") return t.orig;
+    return state.rate ? t.amount / state.rate.value : 0;
   }
+  function cardAmtFor(cardId, cur, orig, gbp) {
+    var c = cardById(cardId);
+    if (!isPH(c)) return undefined;
+    if (cur === "PHP") return orig;
+    return state.rate ? Math.round(gbp / state.rate.value * 100) / 100 : undefined;
+  }
+  function cardStats(card, ym, yr) {
+    var charged = 0, paid = 0, mCharged = 0, mPaid = 0, yCharged = 0, yPaid = 0;
+    state.tx.forEach(function (t) {
+      var v;
+      if (t.type === "expense" && t.pay === card.id) {
+        v = inCard(card, t); charged += v;
+        if (t.date.slice(0, 7) === ym) mCharged += v;
+        if (+t.date.slice(0, 4) === yr) yCharged += v;
+      }
+      if (t.type === "cardpay" && t.card === card.id) {
+        v = inCard(card, t); paid += v;
+        if (t.date.slice(0, 7) === ym) mPaid += v;
+        if (+t.date.slice(0, 4) === yr) yPaid += v;
+      }
+    });
+    return { balance: (card.opening || 0) + charged - paid, mCharged: mCharged, mPaid: mPaid, yCharged: yCharged, yPaid: yPaid };
+  }
+  function cardGroups() {
+    return [
+      { key: "GBP", title: "UK cards", cards: state.cards.filter(function (c) { return !isPH(c); }) },
+      { key: "PHP", title: "Philippine cards", cards: state.cards.filter(isPH) }
+    ].filter(function (g) { return g.cards.length; });
+  }
+  var openPay = null;
   function billById(id) { return state.bills.find(function (b) { return b.id === id; }); }
   function billPayment(bill, ym) { return state.tx.find(function (t) { return t.bill === bill.id && t.date.slice(0, 7) === ym; }); }
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
@@ -472,7 +569,7 @@ td.paid { color: var(--ink-soft); }
     var opts = state.categories.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
     var cprev = $("bCat").value; $("bCat").innerHTML = opts; if (cprev && catById(cprev)) $("bCat").value = cprev;
     var pprev = $("bPay").value;
-    $("bPay").innerHTML = '<option value="cash">Cash or debit</option>' + state.cards.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
+    $("bPay").innerHTML = '<option value="cash">Cash or debit</option>' + state.cards.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + (isPH(c) ? " (PH)" : "") + "</option>"; }).join("");
     if (pprev && (pprev === "cash" || cardById(pprev))) $("bPay").value = pprev;
 
     var y = view.y, m = view.m, dim = daysInMonth(y, m);
@@ -531,7 +628,8 @@ td.paid { color: var(--ink-soft); }
     state.tx.push({ id: uid(), type: "expense", bill: b.id, cur: b.cur, orig: orig, rate: rate,
       amount: Math.round(orig * rate * 100) / 100, date: date,
       category: catById(b.category) ? b.category : (state.categories[0] ? state.categories[0].id : null),
-      pay: b.pay && (b.pay === "cash" || cardById(b.pay)) ? b.pay : "cash", note: b.name });
+      pay: b.pay && (b.pay === "cash" || cardById(b.pay)) ? b.pay : "cash",
+      cardAmt: cardById(b.pay) ? cardAmtFor(b.pay, b.cur, orig, Math.round(orig * rate * 100) / 100) : undefined, note: b.name });
     save(); render(); toast(b.name + " marked as paid");
   }
 
@@ -579,25 +677,31 @@ td.paid { color: var(--ink-soft); }
 
     var psel = $("pay"), pprev = psel.value;
     psel.innerHTML = '<option value="cash">Cash or debit</option>' +
-      state.cards.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + " (credit card)</option>"; }).join("");
+      state.cards.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + (isPH(c) ? " (PH card)" : " (credit card)") + "</option>"; }).join("");
     if (pprev && (pprev === "cash" || cardById(pprev))) psel.value = pprev;
 
     var mk = monthKey();
     renderBills(mk);
-    $("cards").innerHTML = state.cards.length ? '<div class="cards">' + state.cards.map(function (c) {
-      var st = cardStats(c, mk), lim = c.limit || 0;
-      var pct = lim > 0 ? Math.max(0, Math.min(100, st.balance / lim * 100)) : 0;
-      return '<div class="card" style="--cc:' + c.color + '">' +
-        '<div class="card-head"><span class="card-name">' + esc(c.name) + '</span>' +
-        '<button class="icon-btn" data-delcard="' + c.id + '" aria-label="Remove ' + esc(c.name) + '">×</button></div>' +
-        '<div class="card-bal">' + money(st.balance) + '</div>' +
-        '<div class="card-sub">Balance owed' + (lim > 0 ? " · " + Math.round(pct) + "% of " + money(lim) + " limit" : "") + "</div>" +
-        (lim > 0 ? '<div class="track"><i style="width:' + pct + "%;background:" + (pct >= 90 ? "var(--over)" : c.color) + '"></i></div>' : "") +
-        '<div class="card-sub" style="margin-top:6px">This month: ' + money(st.mCharged) + " charged, " + money(st.mPaid) + " paid</div>" +
-        '<div class="pay-row"><input type="number" step="0.01" min="0" inputmode="decimal" placeholder="Payment £" id="payamt-' + c.id + '" aria-label="Payment amount for ' + esc(c.name) + '">' +
-        '<button class="ghost" data-paycard="' + c.id + '">Record payment</button></div></div>';
-    }).join("") + "</div>"
+    $("cards").innerHTML = state.cards.length ? cardGroups().map(function (g) {
+      var tot = 0;
+      var rows = g.cards.map(function (c) {
+        var st = cardStats(c, mk), lim = c.limit || 0; tot += st.balance;
+        var pct = lim > 0 ? Math.max(0, Math.min(100, st.balance / lim * 100)) : 0, free = lim - st.balance;
+        return '<div class="cc-row">' +
+          '<div><div class="cc-name"><span class="dot" style="background:' + c.color + '"></span><span>' + esc(c.name) + "</span></div>" +
+          (lim > 0 ? '<div class="mini"><i style="width:' + pct + "%;background:" + (pct >= 90 ? "var(--over)" : c.color) + '"></i></div>' : "") + "</div>" +
+          '<div class="cc-bal">' + cm(c, st.balance) + (lim > 0 ? '<small class="' + (pct >= 90 ? "low" : "") + '">' + cm(c, free) + " free</small>" : "<small>owed</small>") + "</div>" +
+          '<button class="small-btn" data-showpay="' + c.id + '">Pay</button>' +
+          '<button class="icon-btn" data-delcard="' + c.id + '" aria-label="Remove ' + esc(c.name) + '">×</button>' +
+          (openPay === c.id ? '<div class="cc-pay"><input type="number" step="0.01" min="0" inputmode="decimal" placeholder="Payment ' + (isPH(c) ? "₱" : "£") + '" id="payamt-' + c.id + '" aria-label="Payment amount for ' + esc(c.name) + '">' +
+            '<button class="small-btn" data-paycard="' + c.id + '">Record payment</button></div>' : "") +
+          "</div>";
+      }).join("");
+      var gbpNote = g.key === "PHP" && state.rate ? " (≈ " + money(tot * state.rate.value) + ")" : "";
+      return '<div class="cc-group"><div class="cc-head"><b>' + g.title + "</b><span>" + (g.key === "PHP" ? peso(tot) : money(tot)) + " owed" + gbpNote + "</span></div>" + rows + "</div>";
+    }).join("")
       : '<p class="empty">Add a credit card below, then choose it under "Paid with" when you log an expense.</p>';
+    if (openPay && $("payamt-" + openPay)) $("payamt-" + openPay).focus();
 
     // Envelopes
     $("envelopes").innerHTML = state.categories.map(function (c) {
@@ -631,6 +735,10 @@ td.paid { color: var(--ink-soft); }
               (t.pay && t.pay !== "cash" ? '<span class="pay-tag">On ' + esc(cardName) + "</span>" : "");
           var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
           var sign = t.type === "income" ? "+" : t.type === "cardpay" ? "" : "−";
+          if (t.type === "cardpay" && isPH(card)) {
+            return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + '</td><td class="num paid">' + peso(t.orig) + "</td>" +
+              '<td><button class="icon-btn" data-deltx="' + t.id + '" aria-label="Delete transaction">×</button></td></tr>';
+          }
           return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + "</td>" +
             '<td class="num' + (t.type === "income" ? " inc" : t.type === "cardpay" ? " paid" : "") + '">' + sign + money(t.amount) +
             (t.cur === "PHP" ? '<span class="orig">' + peso(t.orig) + " @ £1 = ₱" + (1 / t.rate).toFixed(2) + "</span>" : "") + "</td>" +
@@ -672,7 +780,9 @@ td.paid { color: var(--ink-soft); }
     state.tx.push({ id: uid(), type: txType, cur: cur, orig: orig, rate: rate,
       amount: Math.round(orig * rate * 100) / 100, date: date,
       category: txType === "expense" ? $("cat").value : null,
-      pay: txType === "expense" ? $("pay").value : undefined, note: $("note").value.trim() });
+      pay: txType === "expense" ? $("pay").value : undefined,
+      cardAmt: txType === "expense" ? cardAmtFor($("pay").value, cur, orig, Math.round(orig * rate * 100) / 100) : undefined,
+      note: $("note").value.trim() });
     save();
     $("amt").value = ""; $("note").value = ""; updatePreview();
     var k = date.slice(0, 7);
@@ -685,6 +795,11 @@ td.paid { color: var(--ink-soft); }
   $("note").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addTx").click(); });
 
   document.addEventListener("change", function (e) {
+    if (e.target.dataset && e.target.dataset.cardlimit) {
+      var ck = cardById(e.target.dataset.cardlimit);
+      if (ck) { ck.limit = Math.max(0, parseFloat(e.target.value) || 0); save(); renderSummary(); toast("Limit updated for " + ck.name); }
+      return;
+    }
     if (e.target.dataset && e.target.dataset.billtoggle) { var bl = billById(e.target.dataset.billtoggle); if (bl) toggleBill(bl, e.target.checked); return; }
     var id = e.target.dataset && e.target.dataset.budget;
     if (id) { var c = catById(id); if (c) { c.budget = Math.max(0, parseFloat(e.target.value) || 0); save(); render(); } }
@@ -700,10 +815,18 @@ td.paid { color: var(--ink-soft); }
     } else if (t.dataset.paycard) {
       var card = cardById(t.dataset.paycard), inp = $("payamt-" + card.id), v = parseFloat(inp.value);
       if (!(v > 0)) { toast("Enter the payment amount"); inp.focus(); return; }
-      var pd = $("date").value || today();
-      state.tx.push({ id: uid(), type: "cardpay", card: card.id, cur: "GBP", orig: Math.round(v * 100) / 100, rate: 1,
-        amount: Math.round(v * 100) / 100, date: pd, category: null, note: "Card payment" });
-      save(); render(); toast("Payment recorded for " + card.name);
+      var pd = $("date").value || today(), pv = Math.round(v * 100) / 100;
+      if (isPH(card)) {
+        var r = state.rate ? state.rate.value : 0;
+        state.tx.push({ id: uid(), type: "cardpay", card: card.id, cur: "PHP", orig: pv, rate: r,
+          amount: Math.round(pv * r * 100) / 100, cardAmt: pv, date: pd, category: null, note: "Card payment" });
+      } else {
+        state.tx.push({ id: uid(), type: "cardpay", card: card.id, cur: "GBP", orig: pv, rate: 1,
+          amount: pv, date: pd, category: null, note: "Card payment" });
+      }
+      openPay = null; save(); render(); toast("Payment recorded for " + card.name);
+    } else if (t.dataset.showpay) {
+      openPay = openPay === t.dataset.showpay ? null : t.dataset.showpay; render();
     } else if (t.dataset.delcard) {
       var cd = cardById(t.dataset.delcard);
       if (!confirm('Remove "' + cd.name + '"? Past expenses stay but show as "Removed card".')) return;
@@ -735,7 +858,7 @@ td.paid { color: var(--ink-soft); }
   $("addCard").onclick = function () {
     var name = $("cardName").value.trim();
     if (!name) { toast("Give the card a name"); $("cardName").focus(); return; }
-    state.cards.push({ id: uid(), name: name, opening: Math.max(0, parseFloat($("cardOpen").value) || 0),
+    state.cards.push({ id: uid(), name: name, cur: $("cardCur").value, opening: Math.max(0, parseFloat($("cardOpen").value) || 0),
       limit: Math.max(0, parseFloat($("cardLimit").value) || 0), color: PALETTE[(state.cards.length + 2) % PALETTE.length] });
     $("cardName").value = ""; $("cardOpen").value = ""; $("cardLimit").value = "";
     save(); render(); toast("Card added");
@@ -777,7 +900,7 @@ td.paid { color: var(--ink-soft); }
     });
     download("budget-" + monthKey() + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
   };
-  $("backup").onclick = function () { download("budget-backup-" + today() + ".json", JSON.stringify(state, null, 2), "application/json"); };
+  $("backup").onclick = function () { download("budget-backup-" + currentProfile().name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-" + today() + ".json", JSON.stringify(state, null, 2), "application/json"); };
   $("restoreBtn").onclick = function () { $("restoreFile").click(); };
   $("restoreFile").onchange = function () {
     var f = this.files[0]; if (!f) return;
@@ -894,18 +1017,41 @@ td.paid { color: var(--ink-soft); }
     if (!state.cards.length) {
       $("sCards").innerHTML = '<p class="empty">No credit cards added yet.</p>';
     } else {
-      var crow = state.cards.map(function (c) {
-        var ch = 0, pd = 0;
-        state.tx.forEach(function (t) {
-          if (+t.date.slice(0, 4) !== sYear) return;
-          if (t.type === "expense" && t.pay === c.id) ch += t.amount;
-          if (t.type === "cardpay" && t.card === c.id) pd += t.amount;
+      var gBal = 0, gAvail = 0, gLim = 0, gCh = 0, gPd = 0, anyLim = false, crow = "";
+      cardGroups().forEach(function (g) {
+        var sBal = 0, sLim = 0, sAvail = 0, gl = false;
+        crow += '<tr class="grp"><td colspan="6">' + g.title + "</td></tr>";
+        g.cards.forEach(function (c) {
+          var st = cardStats(c, "", sYear), lim = c.limit || 0, avail = lim - st.balance;
+          sBal += st.balance; gBal += cardToGbp(c, st.balance);
+          gCh += cardToGbp(c, st.yCharged); gPd += cardToGbp(c, st.yPaid);
+          if (lim > 0) { sLim += lim; sAvail += avail; gLim += cardToGbp(c, lim); gAvail += cardToGbp(c, avail); gl = true; anyLim = true; }
+          var availCell = lim > 0
+            ? '<td class="num' + (avail < 0 ? " neg" : "") + '"><b>' + cm(c, avail) + '</b><span class="orig">' + Math.max(0, Math.round(avail / lim * 100)) + "% free</span></td>"
+            : '<td class="num paid">No limit set</td>';
+          crow += '<tr><td><span class="cat-tag"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + "</span></td>" +
+            '<td class="num">' + cm(c, st.yCharged) + '</td><td class="num">' + cm(c, st.yPaid) + '</td><td class="num"><b>' + cm(c, st.balance) +
+            (isPH(c) && state.rate ? '</b><span class="orig">≈ ' + money(cardToGbp(c, st.balance)) + "</span>" : "</b>") + "</td>" +
+            '<td class="num"><input class="bill-amt" type="number" min="0" step="1" inputmode="decimal" data-cardlimit="' + c.id + '" value="' + (lim || "") + '" placeholder="Add limit" aria-label="Credit limit for ' + esc(c.name) + '"></td>' + availCell + "</tr>";
         });
-        var bal = cardStats(c, "").balance;
-        return '<tr><td><span class="cat-tag"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + "</span></td>" +
-          '<td class="num">' + money(ch) + '</td><td class="num">' + money(pd) + '</td><td class="num"><b>' + money(bal) + "</b></td></tr>";
-      }).join("");
-      $("sCards").innerHTML = "<table><thead><tr><th>Card</th><th style='text-align:right'>Charged</th><th style='text-align:right'>Paid off</th><th style='text-align:right'>Balance now</th></tr></thead><tbody>" + crow + "</tbody></table>";
+        if (g.cards.length > 1) {
+          var f = g.key === "PHP" ? peso : money;
+          crow += '<tr><td><b>' + g.title + ' total</b></td><td></td><td></td><td class="num"><b>' + f(sBal) + '</b></td><td class="num"><b>' + (gl ? f(sLim) : "–") +
+            '</b></td><td class="num' + (sAvail < 0 ? " neg" : "") + '"><b>' + (gl ? f(sAvail) : "–") + "</b></td></tr>";
+        }
+      });
+      var hasPH = state.cards.some(isPH);
+      crow += '<tr class="grp total-row"><td colspan="6">Total, all cards' + (hasPH ? " (in £, pesos at today's rate)" : "") + "</td></tr>" +
+        '<tr class="total-row"><td><b>All cards</b></td><td class="num"><b>' + money(gCh) + '</b></td><td class="num"><b>' + money(gPd) +
+        '</b></td><td class="num"><b>' + money(gBal) + '</b></td><td class="num"><b>' + (anyLim ? money(gLim) : "–") +
+        '</b></td><td class="num' + (gAvail < 0 ? " neg" : "") + '"><b>' + (anyLim ? money(gAvail) : "–") + "</b>" +
+        (anyLim && gLim > 0 ? '<span class="orig">' + Math.max(0, Math.round(gAvail / gLim * 100)) + "% free</span>" : "") + "</td></tr>";
+      var totals = '<div class="cc-totals">' +
+        '<div><span>Total owed</span><b>' + money(gBal) + "</b></div>" +
+        (anyLim ? '<div><span>Total available</span><b class="' + (gAvail < 0 ? "neg" : "") + '">' + money(gAvail) + "</b></div>" +
+          '<div><span>Credit used</span><b>' + (gLim > 0 ? Math.round(gBal / gLim * 100) : 0) + "%</b></div>" : "") +
+        '<div><span>Paid off this year</span><b>' + money(gPd) + "</b></div></div>";
+      $("sCards").innerHTML = totals + "<table><thead><tr><th>Card</th><th style='text-align:right'>Charged this year</th><th style='text-align:right'>Paid this year</th><th style='text-align:right'>Balance now</th><th style='text-align:right'>Limit</th><th style='text-align:right'>Available</th></tr></thead><tbody>" + crow + "</tbody></table>";
     }
 
     // Month table
@@ -955,7 +1101,70 @@ td.paid { color: var(--ink-soft); }
     download("budget-summary-" + sYear + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
   };
 
-  setType("expense"); defaultDate(); render(); renderRate(); updatePreview(); fetchRate(false);
+  // ---------- Profiles ----------
+  var P_COLORS = ["#2F6B4F", "#8E4D6E", "#3C6E91", "#B0613A", "#6A5ACD", "#3F8C8C", "#9C6B3E"];
+  function currentProfile() { return profiles.list.find(function (p) { return p.id === profiles.current; }); }
+  function initial(n) { return (n.trim()[0] || "?").toUpperCase(); }
+  function renderProfiles() {
+    var cp = currentProfile();
+    $("pAvatar").textContent = initial(cp.name); $("pAvatar").style.background = cp.color;
+    $("pName").textContent = cp.name;
+    $("pList").innerHTML = profiles.list.map(function (p) {
+      return '<button class="prow" data-profile="' + p.id + '"' + (p.id === cp.id ? ' aria-current="true"' : "") + '>' +
+        '<span class="avatar" style="background:' + p.color + '">' + esc(initial(p.name)) + "</span>" + esc(p.name) +
+        (p.id === cp.id ? "<small>Open</small>" : "") + "</button>";
+    }).join("");
+    $("pDelete").hidden = profiles.list.length < 2;
+    document.title = "Budget · " + cp.name;
+  }
+  function switchProfile(id) {
+    if (id === profiles.current) { $("profileMenu").open = false; return; }
+    save();
+    var sharedRate = state.rate;
+    profiles.current = id; saveProfiles();
+    KEY = keyFor(id);
+    state = migrate(load());
+    if (!state.rate && sharedRate) { state.rate = sharedRate; save(); }
+    openPay = null;
+    $("profileMenu").open = false;
+    var nowD = new Date(); view.y = nowD.getFullYear(); view.m = nowD.getMonth();
+    renderProfiles(); defaultDate(); renderRate(); updatePreview();
+    if ($("summaryView").hidden) render(); else { sYear = view.y; renderSummary(); }
+    toast("Switched to " + currentProfile().name);
+  }
+  $("pList").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-profile]"); if (b) switchProfile(b.dataset.profile);
+  });
+  $("pAdd").onclick = function () {
+    var name = $("pNew").value.trim();
+    if (!name) { toast("Type a name for the profile"); $("pNew").focus(); return; }
+    var id = uid();
+    profiles.list.push({ id: id, name: name, color: P_COLORS[profiles.list.length % P_COLORS.length] });
+    saveProfiles(); $("pNew").value = "";
+    switchProfile(id);
+  };
+  $("pNew").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pAdd").click(); });
+  $("pRename").onclick = function () {
+    var cp = currentProfile(), n = prompt("New name for this profile", cp.name);
+    if (n && n.trim()) { cp.name = n.trim().slice(0, 24); saveProfiles(); renderProfiles(); }
+  };
+  $("pDelete").onclick = function () {
+    var cp = currentProfile();
+    if (profiles.list.length < 2) return;
+    if (!confirm('Delete "' + cp.name + '" and all of their budget data on this device? Back it up first if you might need it.')) return;
+    try { localStorage.removeItem(keyFor(cp.id)); } catch (e) {}
+    profiles.list = profiles.list.filter(function (p) { return p.id !== cp.id; });
+    var next = profiles.list[0].id; profiles.current = next; saveProfiles();
+    KEY = keyFor(next); state = migrate(load()); openPay = null;
+    renderProfiles(); defaultDate(); renderRate(); updatePreview();
+    if ($("summaryView").hidden) render(); else renderSummary();
+    $("profileMenu").open = false; toast(cp.name + " deleted");
+  };
+  document.addEventListener("click", function (e) {
+    if ($("profileMenu").open && !e.target.closest("#profileMenu")) $("profileMenu").open = false;
+  });
+
+  setType("expense"); defaultDate(); render(); renderRate(); updatePreview(); renderProfiles(); fetchRate(false);
 })();
 </script>
 </body>
