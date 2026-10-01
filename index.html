@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Budget</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🪙</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #E6ECE7;
+  --card: #F7F9F7;
+  --ink: #1D332C;
+  --ink-soft: #55695F;
+  --line: #C9D4CC;
+  --brass: #A87A22;
+  --over: #B0413A;
+  --good: #2F6B4F;
+  --field: #FFFFFF;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #121B18; --card: #1A2622; --ink: #E3EAE5; --ink-soft: #9AAEA4;
+    --line: #2E3E38; --brass: #D3A54A; --over: #E0756D; --good: #7CC3A0; --field: #0F1714;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #121B18; --card: #1A2622; --ink: #E3EAE5; --ink-soft: #9AAEA4;
+  --line: #2E3E38; --brass: #D3A54A; --over: #E0756D; --good: #7CC3A0; --field: #0F1714;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px; line-height: 1.5;
+}
+.wrap { max-width: 980px; margin: 0 auto; padding: 24px 20px 64px; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+header.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.month-nav { display: flex; align-items: center; gap: 4px; }
+.month-nav button { background: none; border: 1px solid var(--line); border-radius: 999px; width: 36px; height: 36px; font-size: 18px; }
+.month-nav button:hover { border-color: var(--ink-soft); }
+.month-label { font-family: "Young Serif", Georgia, serif; font-size: 22px; min-width: 190px; text-align: center; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; }
+.ghost { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; font-size: 14px; }
+.ghost:hover { border-color: var(--ink-soft); }
+
+/* Hero: the money left this month */
+.hero { margin: 36px 0 28px; }
+.hero-caption { color: var(--ink-soft); font-size: 15px; margin: 0; }
+.left {
+  font-family: "Young Serif", Georgia, serif; font-size: clamp(56px, 12vw, 112px);
+  line-height: 1; margin: 6px 0 18px; letter-spacing: -0.02em;
+}
+.left.neg { color: var(--over); }
+.bar { display: flex; height: 22px; border-radius: 4px; overflow: hidden; background: var(--card); border: 1px solid var(--line); }
+.bar span { display: block; height: 100%; }
+.bar .rest { flex: 1; }
+.hero-figs { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 12px; font-size: 15px; color: var(--ink-soft); }
+.hero-figs b { color: var(--ink); font-weight: 600; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.panel h2 { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 20px; margin: 0 0 14px; }
+.panel.wide { grid-column: 1 / -1; }
+
+/* Add form */
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.seg button { background: none; border: 0; padding: 6px 16px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--card); }
+.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.fields label { display: flex; flex-direction: column; font-size: 13px; color: var(--ink-soft); gap: 4px; }
+.fields .full { grid-column: 1 / -1; }
+.fields input, .fields select {
+  background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; font-size: 16px; width: 100%;
+}
+.primary { margin-top: 14px; width: 100%; background: var(--ink); color: var(--card); border: 0; border-radius: 8px; padding: 11px; font-weight: 600; }
+.primary:hover { opacity: .9; }
+.err { color: var(--over); font-size: 14px; min-height: 1.4em; margin: 8px 0 0; }
+.preview { font-size: 14px; color: var(--ink-soft); min-height: 1.4em; margin: 10px 0 0; }
+.rate { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.rate-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+.rate-line span { color: var(--ink-soft); font-size: 13px; }
+.rate-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.rate-actions a { text-decoration: none; display: inline-block; }
+.wise-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.wise-row label { display: flex; align-items: center; gap: 6px; }
+.wise-row input { width: 120px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.orig { display: block; font-size: 12px; color: var(--ink-soft); }
+
+/* Envelopes */
+.env { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.env:last-child { border-bottom: 0; }
+.env-row { display: flex; align-items: center; gap: 10px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.env-name { flex: 1; font-weight: 500; }
+.env-amt { font-variant-numeric: tabular-nums; font-size: 15px; }
+.env-amt.over { color: var(--over); font-weight: 600; }
+.track { height: 6px; background: var(--paper); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.track i { display: block; height: 100%; border-radius: 3px; }
+.budget-in { width: 90px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 14px; text-align: right; }
+.env-note { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
+.add-cat { display: flex; gap: 8px; margin-top: 14px; }
+.add-cat input { flex: 1; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+.icon-btn { background: none; border: 0; color: var(--ink-soft); font-size: 16px; padding: 2px 6px; border-radius: 6px; }
+.icon-btn:hover { color: var(--over); }
+
+/* Transactions */
+.tx-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; font-weight: 500; color: var(--ink-soft); font-size: 13px; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+td { padding: 9px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.inc { color: var(--good); }
+.empty { color: var(--ink-soft); padding: 18px 0; margin: 0; }
+.cat-tag { display: inline-flex; align-items: center; gap: 6px; }
+
+.foot { margin-top: 28px; font-size: 13px; color: var(--ink-soft); }
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--card); padding: 9px 16px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.toast.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="month-nav">
+      <button id="prev" aria-label="Previous month">‹</button>
+      <div class="month-label" id="monthLabel"></div>
+      <button id="next" aria-label="Next month">›</button>
+    </div>
+    <div class="tools">
+      <button class="ghost" id="exportCsv">Export month (CSV)</button>
+      <button class="ghost" id="backup">Back up all</button>
+      <button class="ghost" id="restoreBtn">Restore</button>
+      <input type="file" id="restoreFile" accept=".json,application/json" hidden>
+    </div>
+  </header>
+
+  <section class="hero" aria-live="polite">
+    <p class="hero-caption" id="heroCaption">Left to spend this month</p>
+    <div class="left" id="left"></div>
+    <div class="bar" id="bar" aria-hidden="true"></div>
+    <div class="hero-figs" id="heroFigs"></div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>Add a transaction</h2>
+      <div class="seg" role="group" aria-label="Transaction type">
+        <button type="button" data-type="expense" aria-pressed="true">Expense</button>
+        <button type="button" data-type="income" aria-pressed="false">Income</button>
+      </div>
+      <div class="fields">
+        <label>Amount<input id="amt" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"></label>
+        <label>Currency<select id="cur"><option value="GBP">£ GBP</option><option value="PHP">₱ PHP</option></select></label>
+        <label>Date<input id="date" type="date"></label>
+        <label id="catWrap">Category<select id="cat"></select></label>
+        <label class="full">Note<input id="note" type="text" placeholder="e.g. Weekly shop" maxlength="80"></label>
+      </div>
+      <p class="preview" id="preview"></p>
+      <button class="primary" id="addTx">Add expense</button>
+      <p class="err" id="err"></p>
+
+      <div class="rate">
+        <div class="rate-line"><b id="rateText">Loading rate…</b><span id="rateMeta"></span></div>
+        <div class="rate-actions">
+          <button class="ghost" id="refreshRate">Refresh live rate</button>
+          <button class="ghost" id="wiseToggle">Use Wise rate</button>
+          <a class="ghost" href="https://wise.com/gb/currency-converter/gbp-to-php-rate" target="_blank" rel="noopener">Open Wise</a>
+        </div>
+        <div class="wise-row" id="wiseRow" hidden>
+          <label>£1 = ₱<input id="wiseRate" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="75.50"></label>
+          <button class="ghost" id="saveWise">Save rate</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Monthly budgets</h2>
+      <div id="envelopes"></div>
+      <div class="add-cat">
+        <input id="newCat" type="text" placeholder="New category" maxlength="30" aria-label="New category name">
+        <button class="ghost" id="addCat">Add</button>
+      </div>
+    </section>
+
+    <section class="panel wide">
+      <h2 id="txTitle">Transactions</h2>
+      <div class="tx-scroll" id="txList"></div>
+    </section>
+  </div>
+
+  <p class="foot">Your data is saved in this browser only. Back up regularly, and use Restore to move it to another device.</p>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function () {
+  var KEY = "budget-tracker-v1";
+  var PALETTE = ["#2F6B4F", "#A87A22", "#3C6E91", "#8E4D6E", "#B0613A", "#5B7F2E", "#6A5ACD", "#3F8C8C", "#9C6B3E", "#7A7F87"];
+  var DEFAULT = {
+    currency: "GBP",
+    categories: [
+      { id: "c1", name: "Rent & bills", budget: 0, color: PALETTE[0] },
+      { id: "c2", name: "Groceries", budget: 0, color: PALETTE[1] },
+      { id: "c3", name: "Transport", budget: 0, color: PALETTE[2] },
+      { id: "c4", name: "Eating out", budget: 0, color: PALETTE[3] },
+      { id: "c5", name: "Shopping", budget: 0, color: PALETTE[4] },
+      { id: "c6", name: "Other", budget: 0, color: PALETTE[9] }
+    ],
+    tx: []
+  };
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return JSON.parse(JSON.stringify(DEFAULT));
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.categories) || !Array.isArray(d.tx)) throw new Error("bad");
+      return d;
+    } catch (e) { return JSON.parse(JSON.stringify(DEFAULT)); }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { toast("Couldn't save — browser storage is unavailable"); }
+  }
+
+  var state = load();
+  // Everything is calculated in GBP. Older entries without a currency are GBP.
+  state.currency = "GBP";
+  state.tx.forEach(function (t) {
+    if (!t.cur) { t.cur = "GBP"; t.orig = t.amount; t.rate = 1; }
+  });
+  if (!state.rate) state.rate = null; // { value, source, date, fetchedAt, manual }
+  var now = new Date();
+  var view = { y: now.getFullYear(), m: now.getMonth() };
+  var txType = "expense";
+  var $ = function (id) { return document.getElementById(id); };
+
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function monthKey() { return view.y + "-" + pad(view.m + 1); }
+  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function money(n) {
+    try { return new Intl.NumberFormat(undefined, { style: "currency", currency: state.currency }).format(n); }
+    catch (e) { return n.toFixed(2); }
+  }
+  function peso(n) {
+    try { return new Intl.NumberFormat(undefined, { style: "currency", currency: "PHP" }).format(n); }
+    catch (e) { return "₱" + n.toFixed(2); }
+  }
+
+  // Live PHP→GBP mid-market rate, with fallbacks. Wise also uses the mid-market rate.
+  var SOURCES = [
+    { url: "https://api.frankfurter.dev/v1/latest?base=PHP&symbols=GBP", name: "Frankfurter (ECB mid-market)",
+      pick: function (d) { return { v: d.rates.GBP, date: d.date }; } },
+    { url: "https://api.frankfurter.app/latest?from=PHP&to=GBP", name: "Frankfurter (ECB mid-market)",
+      pick: function (d) { return { v: d.rates.GBP, date: d.date }; } },
+    { url: "https://open.er-api.com/v6/latest/PHP", name: "ExchangeRate-API (mid-market)",
+      pick: function (d) { return { v: d.rates.GBP, date: (d.time_last_update_utc || "").slice(5, 16) }; } }
+  ];
+  var fetching = false;
+  function fetchRate(force) {
+    if (fetching) return;
+    var r = state.rate;
+    if (!force && r && (r.manual || Date.now() - r.fetchedAt < 3 * 3600 * 1000)) { renderRate(); return; }
+    fetching = true; $("rateText").textContent = "Fetching live rate…";
+    var i = 0;
+    (function next() {
+      if (i >= SOURCES.length) {
+        fetching = false; renderRate();
+        toast(state.rate ? "Couldn't refresh — using last saved rate" : "Couldn't get a rate — paste one from Wise");
+        return;
+      }
+      var s = SOURCES[i++];
+      fetch(s.url).then(function (res) { if (!res.ok) throw new Error(); return res.json(); })
+        .then(function (d) {
+          var p = s.pick(d);
+          if (!(p.v > 0)) throw new Error();
+          state.rate = { value: p.v, source: s.name, date: p.date, fetchedAt: Date.now(), manual: false };
+          save(); fetching = false; renderRate(); updatePreview();
+          if (force) toast("Live rate updated");
+        })
+        .catch(next);
+    })();
+  }
+  function renderRate() {
+    var r = state.rate;
+    if (!r) { $("rateText").textContent = "No exchange rate yet"; $("rateMeta").textContent = ""; return; }
+    $("rateText").textContent = "£1 = ₱" + (1 / r.value).toFixed(4);
+    var when = new Date(r.fetchedAt).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    $("rateMeta").textContent = r.manual ? "Wise rate you entered, " + when : r.source + ", checked " + when;
+  }
+  function updatePreview() {
+    var amt = parseFloat($("amt").value);
+    if ($("cur").value !== "PHP") { $("preview").textContent = ""; return; }
+    if (!state.rate) { $("preview").textContent = "Needs an exchange rate to convert to GBP."; return; }
+    $("preview").textContent = amt > 0 ? peso(amt) + " ≈ " + money(amt * state.rate.value) + " at today's rate"
+      : "PHP amounts are converted to GBP when you add them.";
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function catById(id) { return state.categories.find(function (c) { return c.id === id; }); }
+  function monthTx() { var k = monthKey(); return state.tx.filter(function (t) { return t.date.slice(0, 7) === k; }); }
+  function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2200); }
+
+  function render() {
+    var label = new Date(view.y, view.m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    $("monthLabel").textContent = label;
+
+    var txs = monthTx();
+    var income = 0, spent = 0, byCat = {}, phpSpent = 0, phpSpentGbp = 0;
+    txs.forEach(function (t) {
+      if (t.type === "expense" && t.cur === "PHP") { phpSpent += t.orig; phpSpentGbp += t.amount; }
+      if (t.type === "income") income += t.amount;
+      else { spent += t.amount; byCat[t.category] = (byCat[t.category] || 0) + t.amount; }
+    });
+    var totalBudget = state.categories.reduce(function (s, c) { return s + (c.budget || 0); }, 0);
+
+    // Hero: income-based if any income logged, otherwise budget-based
+    var base = income > 0 ? income : totalBudget;
+    var left = base - spent;
+    $("heroCaption").textContent = income > 0 ? "Left from this month's income"
+      : totalBudget > 0 ? "Left in this month's budgets" : "Spent this month";
+    $("left").textContent = (income > 0 || totalBudget > 0) ? money(left) : money(spent);
+    $("left").classList.toggle("neg", (income > 0 || totalBudget > 0) && left < 0);
+
+    var bar = "", denom = Math.max(base, spent) || 1;
+    state.categories.forEach(function (c) {
+      var v = byCat[c.id] || 0;
+      if (v > 0) bar += '<span style="width:' + (v / denom * 100) + '%;background:' + c.color + '" title="' + esc(c.name) + '"></span>';
+    });
+    $("bar").innerHTML = bar + '<span class="rest"></span>';
+    $("heroFigs").innerHTML =
+      "<span>Income <b>" + money(income) + "</b></span>" +
+      "<span>Spent <b>" + money(spent) + "</b></span>" +
+      (totalBudget > 0 ? "<span>Budgeted <b>" + money(totalBudget) + "</b></span>" : "") +
+      (phpSpent > 0 ? "<span>Spent in pesos <b>" + peso(phpSpent) + "</b> (" + money(phpSpentGbp) + ")</span>" : "");
+
+    // Category select
+    var sel = $("cat"), prev = sel.value;
+    sel.innerHTML = state.categories.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
+    if (prev && catById(prev)) sel.value = prev;
+
+    // Envelopes
+    $("envelopes").innerHTML = state.categories.map(function (c) {
+      var s = byCat[c.id] || 0, b = c.budget || 0, over = b > 0 && s > b;
+      var pct = b > 0 ? Math.min(100, s / b * 100) : 0;
+      var note = b > 0 ? (over ? money(s - b) + " over" : money(b - s) + " left") : "No budget set";
+      return '<div class="env">' +
+        '<div class="env-row"><span class="dot" style="background:' + c.color + '"></span>' +
+        '<span class="env-name">' + esc(c.name) + '</span>' +
+        '<span class="env-amt' + (over ? " over" : "") + '">' + money(s) + "</span>" +
+        '<span style="color:var(--ink-soft)">/</span>' +
+        '<input class="budget-in" type="number" min="0" step="1" inputmode="decimal" value="' + (b || "") + '" placeholder="0" data-budget="' + c.id + '" aria-label="Monthly budget for ' + esc(c.name) + '">' +
+        '<button class="icon-btn" data-delcat="' + c.id + '" aria-label="Remove ' + esc(c.name) + '">×</button></div>' +
+        (b > 0 ? '<div class="track"><i style="width:' + pct + "%;background:" + (over ? "var(--over)" : c.color) + '"></i></div>' : "") +
+        '<div class="env-note">' + note + "</div></div>";
+    }).join("") || '<p class="empty">Add a category to start budgeting.</p>';
+
+    // Transactions
+    $("txTitle").textContent = "Transactions in " + label;
+    var sorted = txs.slice().sort(function (a, b) { return b.date.localeCompare(a.date); });
+    if (!sorted.length) {
+      $("txList").innerHTML = '<p class="empty">Nothing logged for this month yet. Add your first transaction above.</p>';
+    } else {
+      $("txList").innerHTML = "<table><thead><tr><th>Date</th><th>Category</th><th>Note</th><th style='text-align:right'>Amount</th><th></th></tr></thead><tbody>" +
+        sorted.map(function (t) {
+          var c = catById(t.category);
+          var catCell = t.type === "income" ? "Income"
+            : '<span class="cat-tag"><span class="dot" style="background:' + (c ? c.color : "#999") + '"></span>' + esc(c ? c.name : "Removed category") + "</span>";
+          var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+          return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + "</td>" +
+            '<td class="num' + (t.type === "income" ? " inc" : "") + '">' + (t.type === "income" ? "+" : "−") + money(t.amount) +
+            (t.cur === "PHP" ? '<span class="orig">' + peso(t.orig) + " @ £1 = ₱" + (1 / t.rate).toFixed(2) + "</span>" : "") + "</td>" +
+            '<td><button class="icon-btn" data-deltx="' + t.id + '" aria-label="Delete transaction">×</button></td></tr>';
+        }).join("") + "</tbody></table>";
+    }
+  }
+
+  function setType(type) {
+    txType = type;
+    document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.type === type ? "true" : "false"); });
+    $("catWrap").style.display = type === "income" ? "none" : "";
+    $("addTx").textContent = type === "income" ? "Add income" : "Add expense";
+  }
+
+  function defaultDate() {
+    var k = monthKey();
+    $("date").value = today().slice(0, 7) === k ? today() : k + "-01";
+  }
+
+  // Events
+  $("prev").onclick = function () { view.m--; if (view.m < 0) { view.m = 11; view.y--; } defaultDate(); render(); };
+  $("next").onclick = function () { view.m++; if (view.m > 11) { view.m = 0; view.y++; } defaultDate(); render(); };
+  document.querySelectorAll(".seg button").forEach(function (b) { b.onclick = function () { setType(b.dataset.type); }; });
+
+  $("addTx").onclick = function () {
+    var amt = parseFloat($("amt").value), date = $("date").value;
+    if (!(amt > 0)) { $("err").textContent = "Enter an amount above zero."; return; }
+    if (!date) { $("err").textContent = "Choose a date."; return; }
+    if (txType === "expense" && !state.categories.length) { $("err").textContent = "Add a category first."; return; }
+    var cur = $("cur").value, rate = 1;
+    if (cur === "PHP") {
+      if (!state.rate) { $("err").textContent = "No exchange rate yet. Tap Refresh live rate or paste one from Wise."; return; }
+      rate = state.rate.value;
+    }
+    $("err").textContent = "";
+    var orig = Math.round(amt * 100) / 100;
+    state.tx.push({ id: uid(), type: txType, cur: cur, orig: orig, rate: rate,
+      amount: Math.round(orig * rate * 100) / 100, date: date,
+      category: txType === "expense" ? $("cat").value : null, note: $("note").value.trim() });
+    save();
+    $("amt").value = ""; $("note").value = ""; updatePreview();
+    var k = date.slice(0, 7);
+    if (k !== monthKey()) { view.y = +k.slice(0, 4); view.m = +k.slice(5, 7) - 1; }
+    render();
+    toast(txType === "income" ? "Income added" : "Expense added");
+    $("amt").focus();
+  };
+  $("amt").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addTx").click(); });
+  $("note").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addTx").click(); });
+
+  document.addEventListener("change", function (e) {
+    var id = e.target.dataset && e.target.dataset.budget;
+    if (id) { var c = catById(id); if (c) { c.budget = Math.max(0, parseFloat(e.target.value) || 0); save(); render(); } }
+  });
+  document.addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) return;
+    if (t.dataset.deltx) {
+      state.tx = state.tx.filter(function (x) { return x.id !== t.dataset.deltx; }); save(); render(); toast("Transaction deleted");
+    } else if (t.dataset.delcat) {
+      var c = catById(t.dataset.delcat);
+      var used = state.tx.some(function (x) { return x.category === c.id; });
+      if (used && !confirm('Remove "' + c.name + '"? Its past transactions will stay but show as "Removed category".')) return;
+      state.categories = state.categories.filter(function (x) { return x.id !== c.id; }); save(); render();
+    }
+  });
+
+  $("addCat").onclick = function () {
+    var name = $("newCat").value.trim(); if (!name) return;
+    state.categories.push({ id: uid(), name: name, budget: 0, color: PALETTE[state.categories.length % PALETTE.length] });
+    $("newCat").value = ""; save(); render(); toast("Category added");
+  };
+  $("newCat").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addCat").click(); });
+
+  $("amt").addEventListener("input", updatePreview);
+  $("cur").onchange = updatePreview;
+  $("refreshRate").onclick = function () { fetchRate(true); };
+  $("wiseToggle").onclick = function () {
+    var row = $("wiseRow"); row.hidden = !row.hidden;
+    if (!row.hidden) { if (state.rate) $("wiseRate").value = (1 / state.rate.value).toFixed(4); $("wiseRate").focus(); }
+  };
+  $("saveWise").onclick = function () {
+    var p = parseFloat($("wiseRate").value);
+    if (!(p > 1)) { toast("Enter how many pesos £1 buys, e.g. 75.50"); return; }
+    var v = 1 / p;
+    state.rate = { value: v, source: "Wise", date: today(), fetchedAt: Date.now(), manual: true };
+    save(); renderRate(); updatePreview(); $("wiseRow").hidden = true; toast("Wise rate saved");
+  };
+
+  function download(name, text, type) {
+    var blob = new Blob([text], { type: type });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  }
+  function csvCell(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+
+  $("exportCsv").onclick = function () {
+    var rows = [["Date", "Type", "Category", "Note", "Original amount", "Currency", "Rate (GBP to PHP)", "Amount (GBP)"]];
+    monthTx().sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
+      var c = catById(t.category), sign = t.type === "income" ? 1 : -1;
+      rows.push([t.date, t.type, t.type === "income" ? "Income" : (c ? c.name : "Removed category"), t.note,
+        sign * t.orig, t.cur, t.cur === "PHP" ? +(1 / t.rate).toFixed(4) : 1, sign * t.amount]);
+    });
+    download("budget-" + monthKey() + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
+  };
+  $("backup").onclick = function () { download("budget-backup-" + today() + ".json", JSON.stringify(state, null, 2), "application/json"); };
+  $("restoreBtn").onclick = function () { $("restoreFile").click(); };
+  $("restoreFile").onchange = function () {
+    var f = this.files[0]; if (!f) return;
+    var r = new FileReader();
+    r.onload = function () {
+      try {
+        var d = JSON.parse(r.result);
+        if (!Array.isArray(d.categories) || !Array.isArray(d.tx)) throw new Error();
+        if (!confirm("Replace the data in this browser with the backup?")) return;
+        d.currency = "GBP";
+        d.tx.forEach(function (t) { if (!t.cur) { t.cur = "GBP"; t.orig = t.amount; t.rate = 1; } });
+        if (!d.rate) d.rate = state.rate;
+        state = d; save(); render(); renderRate(); toast("Backup restored");
+      } catch (e) { toast("That file isn't a budget backup"); }
+    };
+    r.readAsText(f); this.value = "";
+  };
+
+  setType("expense"); defaultDate(); render(); renderRate(); updatePreview(); fetchRate(false);
+})();
+</script>
+</body>
+</html>
