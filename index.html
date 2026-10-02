@@ -68,6 +68,8 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .hero-figs span { display: flex; flex-direction: column; gap: 2px; }
 .hero-figs b { color: var(--ink); font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; }
 .hero-figs small { font-size: 12px; color: var(--ink-soft); }
+#debtsView .left { font-size: clamp(44px, 9vw, 84px); }
+#cardsView .panel + .panel, #debtsView .panel + .panel { margin-top: 16px; }
 
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
 .grid > * { min-width: 0; }
@@ -213,6 +215,13 @@ td.inc { color: var(--good); }
 .legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-soft); margin: -6px 0 10px; }
 .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
 .chart-scroll { overflow-x: auto; }
+.chart-seg { display: flex; flex-wrap: wrap; margin-bottom: 12px; }
+.chart-seg button { font-size: 14px; padding: 6px 12px; }
+.env.tap { cursor: pointer; border-radius: 8px; }
+.env.tap:hover .env-name { text-decoration: underline; text-underline-offset: 3px; }
+.cat-drill { margin: 8px 0 4px; padding: 10px; background: var(--paper); border-radius: 10px; }
+.cat-drill svg { display: block; width: 100%; height: auto; }
+.cat-drill p { margin: 6px 0 0; font-size: 13px; color: var(--ink-soft); }
 .chart-scroll svg { display: block; min-width: 560px; width: 100%; height: auto; }
 .chart-scroll .mcol { cursor: pointer; }
 .chart-scroll .mcol:hover .hl, .chart-scroll .mcol:focus .hl { fill: var(--paper); }
@@ -310,6 +319,40 @@ tr.carried-out td { opacity: .6; }
 .bnpl-av small { display: inline; color: var(--ink-soft); }
 .bnpl-av .warn b { color: var(--over); }
 .bnpl-av .mini { margin-top: 4px; }
+.ca-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 6px; max-width: 760px; }
+.sm-only { display: none; }
+@media (max-width: 480px) {
+  .lg-only { display: none; } .sm-only { display: inline; }
+  .tabs button { padding: 7px 10px; font-size: 15px; }
+  .profile summary { padding-right: 9px; }
+  .topbar { flex-wrap: nowrap; gap: 8px; }
+  #pName { display: none; }
+}
+.ca-card { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--cc); border-radius: 12px; padding: 10px 14px; min-width: 150px; text-align: left; cursor: pointer; }
+.ca-card[aria-pressed="true"] { border-color: var(--ink); border-left-color: var(--cc); box-shadow: 0 0 0 1px var(--ink) inset; }
+.ca-card span { font-size: 13px; color: var(--ink-soft); }
+.ca-card b { font-size: 18px; font-variant-numeric: tabular-nums; }
+.ca-card small { font-size: 12px; color: var(--ink-soft); }
+.d-tiles .ca-card b { font-size: 18px; }
+.ca-card .nx { color: var(--ink); }
+.ca-card .warn { color: var(--over); }
+.d-actions { margin: 12px 0 18px; }
+.dd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.dd-head h2 { margin: 0 0 2px; }
+.dd-head small { color: var(--ink-soft); font-size: 13px; }
+.dd-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 16px; }
+@media (max-width: 680px) { .dd-cols { grid-template-columns: 1fr; } }
+.dd-cols h3 { font-size: 14px; font-weight: 600; margin: 0 0 6px; }
+.dd-list .kv { font-size: 14px; }
+.ca-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ca-top select { background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 16px; min-width: 200px; }
+.ca-flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+@media (max-width: 620px) { .ca-flow { grid-template-columns: 1fr 1fr; } }
+.ca-flow div { background: var(--paper); border-radius: 10px; padding: 9px 11px; }
+.ca-flow span { display: block; font-size: 12px; color: var(--ink-soft); }
+.ca-flow b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.ca-flow .end { border: 1px solid var(--line); background: var(--card); }
+td.pay-in { color: var(--good); }
 .loan-acts { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .debt-sub { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 17px; margin: 22px 0 10px; }
 .debt-sub:first-child { margin-top: 0; }
@@ -341,6 +384,8 @@ tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); f
 .status.soon { color: var(--brass); background: color-mix(in srgb, var(--brass) 16%, transparent); }
 .status.late { color: var(--over); background: color-mix(in srgb, var(--over) 14%, transparent); }
 .bill-amt { width: 104px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.bill-check.none { border-style: dashed; opacity: .45; cursor: default; }
+span.bill-amt.none { border: 0; background: transparent; }
 .bill-amt:disabled { background: transparent; border-color: transparent; color: var(--ink); opacity: 1; }
 @media (max-width: 620px) {
   .bill { grid-template-columns: auto 1fr auto; row-gap: 6px; }
@@ -382,7 +427,9 @@ td.paid { color: var(--ink-soft); }
 <div class="wrap">
   <div class="topbar">
   <nav class="tabs" role="tablist" aria-label="View">
-    <button role="tab" id="tabMonth" aria-selected="true">This month</button>
+    <button role="tab" id="tabMonth" aria-selected="true"><span class="lg-only">This month</span><span class="sm-only">Month</span></button>
+    <button role="tab" id="tabCards" aria-selected="false">Cards</button>
+    <button role="tab" id="tabDebts" aria-selected="false">Debts</button>
     <button role="tab" id="tabSummary" aria-selected="false">Summary</button>
   </nav>
   <details class="profile" id="profileMenu">
@@ -552,8 +599,32 @@ td.paid { color: var(--ink-soft); }
       </details>
     </section>
 
+
+    <section class="panel wide fold" data-sec="tx">
+      <h2><button class="sec-toggle" aria-expanded="true"><span id="txTitle">Transactions</span><span class="sec-sum" id="sum-tx"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
+      <div class="tx-scroll" id="txList"></div>
+    </section>
+  </div>
+
+  </div>
+
+  <div id="cardsView" hidden>
+    <header class="top">
+      <div class="month-nav">
+        <button id="caPrev" aria-label="Previous month">‹</button>
+        <div class="month-label" id="caMonth"></div>
+        <button id="caNext" aria-label="Next month">›</button>
+      </div>
+    </header>
+    <section class="hero">
+      <p class="hero-caption" id="caCaption">Card activity</p>
+      <div class="ca-cards" id="caCards"></div>
+    </section>
+    <section class="panel wide">
+      <div id="cardAct"></div>
+    </section>
     <section class="panel wide fold" data-sec="cards">
-      <h2><button class="sec-toggle" aria-expanded="true"><span>Credit cards</span><span class="sec-sum" id="sum-cards"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
+      <h2><button class="sec-toggle" aria-expanded="true"><span>Your cards</span><span class="sec-sum" id="sum-cards"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
       <div id="cards"></div>
       <details class="add-card">
         <summary>Add a card</summary>
@@ -566,18 +637,23 @@ td.paid { color: var(--ink-soft); }
         </div>
       </details>
     </section>
-
-    <section class="panel wide fold" data-sec="loans">
-      <h2><button class="sec-toggle" aria-expanded="true"><span>Loans and debts</span><span class="sec-sum" id="sum-loans"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-      <div id="loansPanel"></div>
-    </section>
-
-    <section class="panel wide fold" data-sec="tx">
-      <h2><button class="sec-toggle" aria-expanded="true"><span id="txTitle">Transactions</span><span class="sec-sum" id="sum-tx"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-      <div class="tx-scroll" id="txList"></div>
-    </section>
   </div>
 
+  <div id="debtsView" hidden>
+    <section class="hero">
+      <p class="hero-caption">Total debt</p>
+      <div class="left" id="dBig"></div>
+      <div class="hero-figs" id="dFigs"></div>
+    </section>
+    <div id="dLegacy"></div>
+    <p class="hero-caption" id="dCaption" style="margin:4px 0 8px">Tap a debt to see its payments and details</p>
+    <div class="ca-cards d-tiles" id="dTiles"></div>
+    <div class="d-actions"><button class="ghost" id="addLoan">Add a loan or debt</button></div>
+    <section class="panel wide" id="dDetailWrap"><div id="dDetail"></div></section>
+    <section class="panel wide fold" data-sec="ddti">
+      <h2><button class="sec-toggle" aria-expanded="true"><span>Debt to income</span><span class="sec-sum" id="sum-ddti"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
+      <div id="sDebt"></div>
+    </section>
   </div>
 
   <div id="summaryView" hidden>
@@ -596,27 +672,19 @@ td.paid { color: var(--ink-soft); }
     </section>
 
     <div class="grid">
-      <section class="panel fold wide" data-sec="schart">
-        <h2><button class="sec-toggle" aria-expanded="true"><span>Income and spending by month</span><span class="sec-sum" id="sum-schart"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-        <div class="legend"><span><i style="background:var(--good)"></i>Income</span><span><i style="background:var(--brass)"></i>Spent</span></div>
+      <section class="panel wide">
+        <div class="seg chart-seg" role="group" aria-label="Chart">
+          <button type="button" data-chart="spend" aria-pressed="true">Income vs spending</button>
+          <button type="button" data-chart="saved" aria-pressed="false">Saved each month</button>
+          <button type="button" data-chart="debt" aria-pressed="false">Debt over time</button>
+        </div>
+        <div class="legend" id="sLegend"></div>
         <div class="chart-scroll" id="sChart"></div>
-        <p class="hint">Tap a month to open it.</p>
+        <p class="hint" id="sChartHint"></p>
       </section>
-      <section class="panel fold" data-sec="scats">
-        <h2><button class="sec-toggle" aria-expanded="true"><span>Where the money went</span><span class="sec-sum" id="sum-scats"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
+      <section class="panel wide">
+        <h2>Where the money went <span class="sec-sum" id="sum-scats" style="float:right"></span></h2>
         <div id="sCats"></div>
-      </section>
-      <section class="panel fold" data-sec="sphp">
-        <h2><button class="sec-toggle" aria-expanded="true"><span>Pesos</span><span class="sec-sum" id="sum-sphp"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-        <div id="sPhp"></div>
-      </section>
-      <section class="panel fold wide" data-sec="scards">
-        <h2><button class="sec-toggle" aria-expanded="true"><span>Credit cards</span><span class="sec-sum" id="sum-scards"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-        <div class="tx-scroll" id="sCards"></div>
-      </section>
-      <section class="panel fold wide" data-sec="sdebt">
-        <h2><button class="sec-toggle" aria-expanded="true"><span>Debts</span><span class="sec-sum" id="sum-sdebt"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
-        <div id="sDebt"></div>
       </section>
     </div>
   </div>
@@ -928,28 +996,36 @@ td.paid { color: var(--ink-soft); }
     var l = anyLoanFor(b); if (!l) return null;
     var t0 = new Date(); t0.setHours(0, 0, 0, 0);
     var from = new Date(t0.getFullYear(), t0.getMonth(), 1), to = new Date(t0.getFullYear() + 3, t0.getMonth(), 1);
-    var left = loanState(l).balance, r = (l.apr || 0) / 1200, map = {};
+    var left = loanState(l).balance, r = (l.apr || 0) / 1200, map = {}, unknown = false;
     Object.defineProperty(map, "_dates", { value: {}, enumerable: false });
     occurrences(b, from, to).forEach(function (o) {
       map._dates[o.key] = o.date;
       if (occPayment(b, o.key)) return;
-      var want = baseDue(b, o.key);
-      if (!(want > 0)) want = left;               // varies with no history: assume it clears what's left
+      if (left <= 0.005) { map[o.key] = 0; return; }   // already cleared by earlier payments
       left += left * r * (FREQ_DAYS[freqOf(b)] ? FREQ_DAYS[freqOf(b)] / 30.4 : 1);
+      var mode = payMode(l), want;
+      if (mode === "min") want = minDue(l, left);
+      else want = baseDue(b, o.key);                // fixed amount, plan instalments, or the average of past payments
+      if (!(want > 0) && planLoanFor(b)) { map[o.key] = 0; return; }   // no plan instalment due this month
+      if (!(want > 0)) { map[o.key] = null; unknown = true; return; }   // varies and nothing to go on: don't guess
       var amt = Math.max(0, Math.min(want, left));
       map[o.key] = Math.round(amt * 100) / 100;
       left = Math.max(0, left - amt);
     });
-    Object.defineProperty(map, "_left", { value: left, enumerable: false });
+    Object.defineProperty(map, "_left", { value: unknown ? Infinity : left, enumerable: false });
     return map;
   }
   function billDue(b, key) {
     var pj = loanProjection(b);
-    if (pj && pj[key] != null) return pj[key];
+    if (pj && key in pj) return pj[key] == null ? 0 : pj[key];
     return baseDue(b, key);
   }
   // Nothing to pay on this date: the plans have nothing due, or the loan will already be cleared
-  function nothingDue(b, key) { return (!!planLoanFor(b) || !!anyLoanFor(b)) && !(billDue(b, key) > 0); }
+  function nothingDue(b, key) {
+    if (planLoanFor(b)) return !(billDue(b, key) > 0);
+    var pj = anyLoanFor(b) ? loanProjection(b) : null;
+    return !!(pj && pj[key] === 0);
+  }
   function billEst(b) {
     var bl = state.loans.find(function (l) { return l.billId === b.id && l.kind === "bnpl"; });
     if (bl && planPurchases(bl).length) { var due = planDueIn(bl, ymOf(new Date())) || planDueIn(bl, nextYm(ymOf(new Date()))); if (due > 0) return Math.round(due * 100) / 100; }
@@ -959,6 +1035,8 @@ td.paid { color: var(--ink-soft); }
   }
   function billAmtText(b) {
     var f = b.cur === "PHP" ? peso : money;
+    var ml = state.loans.find(function (l) { return l.billId === b.id && payMode(l) === "min"; });
+    if (ml) { var md = minDue(ml, loanState(ml).balance); return md > 0 ? "Minimum ≈ " + f(md) : "Minimum"; }
     var bl = state.loans.find(function (l) { return l.billId === b.id && l.kind === "bnpl"; });
     if (bl && planPurchases(bl).length && billEst(b) > 0) {
       var np = planPurchases(bl).filter(function (t) { return planInfo(bl, t).active; }).length;
@@ -1073,7 +1151,11 @@ td.paid { color: var(--ink-soft); }
         return '<li><input type="checkbox" class="bill-check" data-pdpay="' + b.id + '" data-occ="' + i.key + '" aria-label="Mark ' + esc(b.name) + ' as paid">' +
           "<div>" + esc(b.name) + ' <span class="' + (i.late ? "late" : "bill-meta") + '">' + (i.late ? "overdue, was due " : "due ") + fmt(i.due) +
           (function () { var pi = payInfo(b.pay); return pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : ""; })() + "</span></div>" +
-          '<span class="amt">' + (planLoanFor(b) || anyLoanFor(b) ? (isVar(b) || planLoanFor(b) || billDue(b, i.key) < b.amount ? "≈ " : "") + (b.cur === "PHP" ? peso(billDue(b, i.key)) : money(billDue(b, i.key))) : billAmtText(b)) + "</span></li>";
+          '<span class="amt">' + (function () {
+            var d = billDue(b, i.key), f = b.cur === "PHP" ? peso : money;
+            if (!(d > 0)) return billAmtText(b);
+            return (planLoanFor(b) || (anyLoanFor(b) && (isVar(b) || d < b.amount)) ? "≈ " : "") + f(d);
+          })() + "</span></li>";
       }).join("") + "</ul>" + paydaySplit(r.items) : "");
     return true;
   }
@@ -1096,7 +1178,7 @@ td.paid { color: var(--ink-soft); }
       $("bills").innerHTML = '<p class="empty">Add your regular bills below. Each month you can tick them off as you pay them.</p>';
       return;
     }
-    var paidN = 0, owing = 0, rows = [], notDue = [];
+    var paidN = 0, nothingN = 0, owing = 0, rows = [], notDue = [];
     var mFrom = new Date(y, m, 1), mTo = new Date(y, m + 1, 1);
     state.bills.forEach(function (b) {
       var occ = occurrences(b, mFrom, mTo);
@@ -1110,7 +1192,7 @@ td.paid { color: var(--ink-soft); }
       var planZero = !p && nothingDue(b, o.key);
       if (p) { status = "Paid"; cls = "paid"; paidN++; }
       else if (billFinished(b)) { status = "Loan paid off"; cls = "paid"; paidN++; }
-      else if (planZero) { status = planLoanFor(b) ? "Nothing due" : "Nothing left to pay"; cls = "paid"; paidN++; }
+      else if (planZero) { status = planLoanFor(b) ? "Nothing due" : "Nothing left to pay"; cls = "paid"; nothingN++; }
       else {
         owing += billGbp(b, billDue(b, o.key));
         if (diff < 0) { status = "Overdue"; cls = "late"; }
@@ -1124,11 +1206,12 @@ td.paid { color: var(--ink-soft); }
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
       var est = billDue(b, o.key), shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : (est > 0 ? est : (isVar(b) || nothingDue(b, o.key) ? null : b.amount)), idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
-        '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '" data-occ="' + o.key + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + " due " + o.date.toLocaleDateString() + ' as paid">' +
+        (planZero ? '<span class="bill-check none" aria-hidden="true"></span>' :
+        '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '" data-occ="' + o.key + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + " due " + o.date.toLocaleDateString() + ' as paid">') +
         '<div><div class="bill-name">' + esc(b.name) + '</div><div class="bill-meta">' + meta + "</div></div>" +
         '<span class="status ' + cls + '">' + status + "</span>" +
-        '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + idk + '" value="' + (shown != null ? shown.toFixed(2) : "") + '"' + (shown == null ? ' placeholder="Varies"' : "") + (p ? " disabled" : "") +
-        ' aria-label="Amount for ' + esc(b.name) + ' in ' + b.cur + '" title="' + (b.cur === "PHP" ? "Pesos" : "Pounds") + '">' +
+        (planZero ? '<span class="bill-amt none"></span>' : '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + idk + '" value="' + (shown != null ? shown.toFixed(2) : "") + '"' + (shown == null ? ' placeholder="Varies"' : "") + (p ? " disabled" : "") +
+        ' aria-label="Amount for ' + esc(b.name) + ' in ' + b.cur + '" title="' + (b.cur === "PHP" ? "Pesos" : "Pounds") + '">') +
         '<button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></div>';
     }).join("") || '<p class="empty">No bills due in ' + label + ".</p>";
     if (notDue.length) {
@@ -1139,7 +1222,7 @@ td.paid { color: var(--ink-soft); }
           '</small> <button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></span>';
       }).join("") + "</div>";
     }
-    var totalN = rows.length;
+    var totalN = rows.length - nothingN;
     if (renderPayday()) {
       // The payday box is the checklist; the full month list folds away underneath
       $("bills").innerHTML = '<details class="all-bills"' + (allBillsOpen ? " open" : "") + '><summary>All bills in ' + label +
@@ -1263,7 +1346,7 @@ td.paid { color: var(--ink-soft); }
         return '<div class="cc-row">' +
           '<div><div class="cc-name"><span class="dot" style="background:' + c.color + '"></span><span>' + esc(c.name) + "</span></div>" +
           (lim > 0 ? '<div class="mini"><i style="width:' + pct + "%;background:" + (pct >= 90 ? "var(--over)" : c.color) + '"></i></div>' : "") + "</div>" +
-          '<div class="cc-bal">' + cm(c, st.balance) + (lim > 0 ? '<small class="' + (pct >= 90 ? "low" : "") + '">' + cm(c, free) + " free</small>" : "<small>owed</small>") + "</div>" +
+          '<div class="cc-bal">' + cm(c, st.balance) + (lim > 0 ? '<small class="' + (pct >= 90 ? "low" : "") + '">' + (free < 0 ? cm(c, -free) + " over limit" : cm(c, free) + " free") + "</small>" : "<small>owed</small>") + "</div>" +
           '<button class="small-btn" data-startpay="card:' + c.id + '">Pay</button>' +
           '<button class="edit-btn" data-editcard="' + c.id + '" aria-label="Edit ' + esc(c.name) + '">Edit</button>' +
           "</div>";
@@ -1329,7 +1412,7 @@ td.paid { color: var(--ink-soft); }
             '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit transaction">Edit</button></td></tr>';
         }).join("") + "</tbody></table>";
     }
-    renderLoansPanel(); renderPaydayBar(); renderLinkOptions(); updatePlanRow();
+    renderPaydayBar(); renderLinkOptions(); updatePlanRow(); if (currentTab === "cards") renderCardsPage(); if (currentTab === "debts") renderDebtsPage();
     updateSums(txs, spent, totalBudget);
   }
 
@@ -1587,126 +1670,238 @@ td.paid { color: var(--ink-soft); }
     return { months: months, cats: cats, php: php, phpGbp: phpGbp };
   }
 
+  var sChartMode = "spend", sCatOpen = null;
+  function summaryMonthsInfo(y) {
+    var now = new Date(), curY = now.getFullYear(), curM = now.getMonth();
+    return { curIdx: y === curY ? curM : -1, future: function (i) { return y > curY || (y === curY && i > curM); } };
+  }
+  // Total debt (in £) at the end of each month: actual for the past, projected for the future
+  function loanBalanceAt(l, endStr) {
+    var bal = l.balance || 0, r = (l.apr || 0) / 1200;
+    state.tx.filter(function (t) {
+      if (t.type !== "expense" || t.date > endStr) return false;
+      var isPay = t.loan === l.id || (l.billId && t.bill === l.billId), isBuy = l.kind === "bnpl" && t.pay === l.id;
+      if (!isPay && !isBuy) return false;
+      return (t.created || new Date(t.date + "T23:59:59").getTime()) > (l.asOf || 0);
+    }).sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
+      var amt = inLoanCur(l, t);
+      if (l.kind === "bnpl" && t.pay === l.id && !(t.loan === l.id || (l.billId && t.bill === l.billId))) { bal += amt; return; }
+      bal = Math.max(0, bal + bal * r - amt);
+    });
+    return bal;
+  }
+  function loanBalanceFuture(l, endDate) {
+    var now = loanState(l).balance, bill = loanBill(l);
+    if (!bill || now <= 0) return now;
+    var pj = loanProjection(bill), r = (l.apr || 0) / 1200, bal = now, t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    Object.keys(pj).sort().forEach(function (k) {
+      var d = pj._dates[k]; if (d < t0 || d > endDate || occPayment(bill, k)) return;
+      bal = Math.max(0, bal + bal * r - (pj[k] || 0));
+    });
+    return bal;
+  }
+  function debtSeries(y) {
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var firstTx = state.tx.reduce(function (m, t) { return !m || t.date < m ? t.date : m; }, null);
+    var loanStarts = state.loans.map(function (l) { return l.asOf > 1e11 ? dayKey(new Date(l.asOf)) : null; }).filter(Boolean);
+    var trackFrom = [firstTx].concat(loanStarts).filter(Boolean).sort().pop() || dayKey(t0);
+    return MONTHS_SHORT.map(function (_, i) {
+      var end = new Date(y, i + 1, 0), endStr = dayKey(end), monthStart = new Date(y, i, 1);
+      var future = monthStart > t0, actualEnd = end > t0 ? t0 : end, aStr = dayKey(actualEnd);
+      if (!future && endStr < trackFrom.slice(0, 7) + "-01") return null;
+      if (state.loans.some(function (l) { return l.asOf && new Date(l.asOf) > new Date(y, i + 1, 0, 23, 59, 59) && !future; })) {
+        // a loan was only added later, so this month's total isn't known
+        if (!future && end < t0) return null;
+      }
+      var cards = state.cards.reduce(function (sum, c) {
+        var bal = c.opening || 0;
+        state.tx.forEach(function (t) {
+          if (t.date > (future ? dayKey(t0) : aStr)) return;
+          if (t.type === "expense" && t.pay === c.id) bal += inCard(c, t);
+          if (t.type === "cardpay" && t.card === c.id) bal -= inCard(c, t);
+        });
+        return sum + cardToGbp(c, bal);
+      }, 0);
+      var loans = state.loans.reduce(function (sum, l) {
+        return sum + loanToGbp(l, future ? loanBalanceFuture(l, end) : loanBalanceAt(l, aStr));
+      }, 0);
+      return { v: cards + loans, projected: future };
+    });
+  }
+  function lineChart(series, opts) {
+    var W = 720, H = 240, top = 26, bottom = 28, left = 8, right = 8, colW = (W - left - right) / 12;
+    var pts = series.map(function (x, i) { return x ? { i: i, v: x.v, p: x.projected } : null; }).filter(Boolean);
+    if (!pts.length) return "";
+    var vs = pts.map(function (p) { return p.v; }), hi = Math.max.apply(null, vs), lo = Math.min.apply(null, vs);
+    var pad = Math.max((hi - lo) * 0.25, hi * 0.02, 1); hi += pad; lo = Math.max(0, lo - pad);
+    var X = function (i) { return left + colW * i + colW / 2; }, Y = function (v) { return top + (hi - v) / (hi - lo) * (H - top - bottom); };
+    var solid = pts.filter(function (p) { return !p.p; }), proj = pts.filter(function (p) { return p.p; });
+    if (solid.length && proj.length) proj.unshift(solid[solid.length - 1]);
+    var path = function (arr) { return arr.map(function (p, k) { return (k ? "L" : "M") + X(p.i).toFixed(1) + " " + Y(p.v).toFixed(1); }).join(" "); };
+    var svg = "";
+    if (solid.length > 1) svg += '<path d="' + path(solid) + '" fill="none" stroke="var(--over)" stroke-width="3" stroke-linejoin="round"/>';
+    if (proj.length > 1) svg += '<path d="' + path(proj) + '" fill="none" stroke="var(--ink-soft)" stroke-width="3" stroke-dasharray="6 5" stroke-linejoin="round"/>';
+    pts.forEach(function (p, k) {
+      var lab = opts.labels[p.i];
+      svg += '<g class="mcol" data-month="' + p.i + '" tabindex="0" role="button" aria-label="' + esc(lab) + '"><title>' + esc(lab) + "</title>" +
+        '<rect class="hl" x="' + (X(p.i) - colW / 2 + 2) + '" y="0" width="' + (colW - 4) + '" height="' + (H - bottom) + '" rx="6" fill="transparent"/>' +
+        '<circle cx="' + X(p.i) + '" cy="' + Y(p.v) + '" r="5" fill="' + (p.p ? "var(--card)" : "var(--over)") + '" stroke="' + (p.p ? "var(--ink-soft)" : "var(--over)") + '" stroke-width="2"/>' +
+        (k === 0 || k === pts.length - 1 ? '<text x="' + (X(p.i) + (k === pts.length - 1 && pts.length > 1 ? 6 : k === 0 && pts.length > 1 ? -6 : 0)) + '" y="' + (Y(p.v) - 14) + '" text-anchor="' + (k === 0 && pts.length > 1 ? "start" : k === pts.length - 1 && pts.length > 1 ? "end" : "middle") + '" font-size="12" font-weight="600" fill="var(--ink)">' + money(p.v).replace(/\.\d\d$/, "") + "</text>" : "") +
+        "</g>";
+    });
+    MONTHS_SHORT.forEach(function (m, i) { svg += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="var(--ink-soft)">' + esc(m) + "</text>"; });
+    return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(opts.title) + '">' + svg + "</svg>";
+  }
+  function barChart(values, opts) {
+    // values: [{ v, kind: "a" | "b" | "pos" | "neg" | "proj" | "part" , label }] grouped per month as arrays
+    var W = 720, H = 240, top = 18, bottom = 28, left = 8, colW = (W - left * 2) / 12, plotH = H - top - bottom;
+    var max = 0, min = 0;
+    values.forEach(function (g) { (g || []).forEach(function (b) { max = Math.max(max, b.v); min = Math.min(min, b.v); }); });
+    if (opts.max) max = Math.max(max, opts.max);
+    if (max === 0 && min === 0) max = 1;
+    var span = max - min, zeroY = top + max / span * plotH, svg = "";
+    var colors = { a: "var(--good)", b: "var(--brass)", pos: "var(--good)", neg: "var(--over)", proj: "var(--ink-soft)", debt: "var(--over)" };
+    values.forEach(function (g, i) {
+      var x = left + i * colW, cx = x + colW / 2, n = (g || []).length, bw = Math.min(n > 1 ? 18 : 30, colW / (n > 1 ? 3.2 : 1.8));
+      var label = opts.labels[i];
+      svg += '<g class="mcol" data-month="' + i + '" tabindex="0" role="button" aria-label="' + esc(label) + '"><title>' + esc(label) + "</title>" +
+        '<rect class="hl" x="' + (x + 2) + '" y="0" width="' + (colW - 4) + '" height="' + (H - bottom) + '" rx="6" fill="transparent"/>';
+      (g || []).forEach(function (b, k) {
+        var h = Math.abs(b.v) / span * plotH, y = b.v >= 0 ? zeroY - h : zeroY, bx = n > 1 ? cx - bw - 1 + k * (bw + 2) : cx - bw / 2;
+        svg += '<rect x="' + bx + '" y="' + y + '" width="' + bw + '" height="' + Math.max(h, b.v ? 1 : 0) + '" rx="2" fill="' + colors[b.kind] + '"' +
+          (b.faded ? ' opacity=".45"' : "") + (b.dashed ? ' fill-opacity=".25" stroke="' + colors[b.kind] + '" stroke-dasharray="3 2"' : "") + "/>";
+      });
+      svg += '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="var(--ink-soft)">' + esc(MONTHS_SHORT[i]) + "</text></g>";
+    });
+    svg = '<line x1="0" x2="' + W + '" y1="' + zeroY + '" y2="' + zeroY + '" stroke="var(--line)"/>' + svg;
+    return '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(opts.title) + '">' + svg + "</svg>";
+  }
   function renderSummary() {
     $("yearLabel").textContent = sYear;
-    var d = yearData(sYear);
-    var income = 0, spent = 0, active = 0;
-    // "active" = months with spending, so averages and budget comparisons aren't diluted by income-only months
-    var logged = 0;
-    d.months.forEach(function (m) { income += m.income; spent += m.spent; if (m.spent > 0) active++; if (m.count) logged++; });
+    var d = yearData(sYear), mi = summaryMonthsInfo(sYear);
+    var income = 0, spent = 0, logged = 0, complete = 0, completeSpent = 0;
+    d.months.forEach(function (m, i) {
+      income += m.income; spent += m.spent; if (m.count) logged++;
+      if (m.spent > 0 && i !== mi.curIdx && !mi.future(i)) { complete++; completeSpent += m.spent; }
+    });
+    // averages use finished months only, so this month's partial spend doesn't pull them down
+    var avgBase = complete ? complete : (d.months.some(function (m) { return m.spent > 0; }) ? 1 : 0);
+    var avgSpend = complete ? completeSpent / complete : spent;
     var net = income - spent;
-
     if (income > 0) {
-      $("sCaption").textContent = net >= 0 ? "Saved in " + sYear : "Overspent in " + sYear;
+      $("sCaption").textContent = net >= 0 ? "Saved in " + sYear + (mi.curIdx >= 0 ? " so far" : "") : "Overspent in " + sYear;
       $("sBig").textContent = money(Math.abs(net));
       $("sBig").classList.toggle("neg", net < 0);
     } else {
-      $("sCaption").textContent = "Spent in " + sYear;
-      $("sBig").textContent = money(spent);
-      $("sBig").classList.remove("neg");
+      $("sCaption").textContent = "Spent in " + sYear; $("sBig").textContent = money(spent); $("sBig").classList.remove("neg");
     }
+    var pesoShare = spent ? d.phpGbp / spent * 100 : 0;
     $("sFigs").innerHTML =
       "<span>Income <b>" + money(income) + "</b></span>" +
       "<span>Spent <b>" + money(spent) + "</b></span>" +
-      (active ? "<span>Average spend a month <b>" + money(spent / active) + "</b></span>" : "") +
-      (income > 0 ? "<span>Savings rate <b>" + Math.round(net / income * 100) + "%</b></span>" : "");
+      (avgBase ? "<span>Average spend a month <b>" + money(avgSpend) + "</b>" + (complete ? "<small>" + complete + " full " + (complete === 1 ? "month" : "months") + "</small>" : "<small>this month so far</small>") + "</span>" : "") +
+      (income > 0 ? "<span>Savings rate <b>" + Math.round(net / income * 100) + "%</b></span>" : "") +
+      (d.php > 0 ? "<span>Spent in pesos <b>" + peso(d.php) + "</b><small>" + money(d.phpGbp) + " · avg £1 = ₱" + (d.php / d.phpGbp).toFixed(2) + "</small></span>" : "");
 
-    // Bar chart
-    var W = 720, H = 240, top = 16, bottom = 28, left = 8, colW = (W - left * 2) / 12;
-    var max = 0;
-    d.months.forEach(function (m) { max = Math.max(max, m.income, m.spent); });
-    if (!logged) {
-      $("sChart").innerHTML = '<p class="empty">No transactions in ' + sYear + ' yet.</p>';
-    } else {
-      var plotH = H - top - bottom, bw = Math.min(18, colW / 3.2), svg = "";
-      svg += '<line x1="0" x2="' + W + '" y1="' + (H - bottom) + '" y2="' + (H - bottom) + '" stroke="var(--line)"/>';
-      d.months.forEach(function (m, i) {
-        var x = left + i * colW, cx = x + colW / 2;
-        var hi = max ? m.income / max * plotH : 0, hs = max ? m.spent / max * plotH : 0;
-        var label = MONTHS_SHORT[i] + ": income " + money(m.income) + ", spent " + money(m.spent) + ", left over " + money(m.income - m.spent);
-        svg += '<g class="mcol" data-month="' + i + '" tabindex="0" role="button" aria-label="' + esc(label) + '"><title>' + esc(label) + '</title>' +
-          '<rect class="hl" x="' + (x + 2) + '" y="0" width="' + (colW - 4) + '" height="' + (H - bottom) + '" rx="6" fill="transparent"/>' +
-          '<rect x="' + (cx - bw - 1) + '" y="' + (H - bottom - hi) + '" width="' + bw + '" height="' + hi + '" rx="2" fill="var(--good)"/>' +
-          '<rect x="' + (cx + 1) + '" y="' + (H - bottom - hs) + '" width="' + bw + '" height="' + hs + '" rx="2" fill="var(--brass)"/>' +
-          '<text x="' + cx + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="var(--ink-soft)">' + esc(MONTHS_SHORT[i]) + '</text></g>';
+    // ---- chart ----
+    document.querySelectorAll(".chart-seg button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.chart === sChartMode ? "true" : "false"); });
+    var labels = [], groups = [], hint = "";
+    if (sChartMode === "spend") {
+      $("sLegend").innerHTML = '<span><i style="background:var(--good)"></i>Income</span><span><i style="background:var(--brass)"></i>Spent</span>';
+      groups = d.months.map(function (m, i) {
+        labels.push(MONTHS_SHORT[i] + ": income " + money(m.income) + ", spent " + money(m.spent) + (i === mi.curIdx ? " so far" : ""));
+        return mi.future(i) ? [] : [{ v: m.income, kind: "a" }, { v: m.spent, kind: "b", dashed: i === mi.curIdx }];
       });
-      $("sChart").innerHTML = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Monthly income and spending for ' + sYear + '">' + svg + "</svg>";
+      hint = (mi.curIdx >= 0 ? "This month's spending is so far (outlined). " : "") + "Tap a month to open it.";
+      if (!logged) groups = null;
+    } else if (sChartMode === "saved") {
+      $("sLegend").innerHTML = '<span><i style="background:var(--good)"></i>Saved</span><span><i style="background:var(--over)"></i>Spent more than earned</span>';
+      groups = d.months.map(function (m, i) {
+        var v = m.income - m.spent;
+        labels.push(MONTHS_SHORT[i] + ": " + (v >= 0 ? "saved " + money(v) : "overspent " + money(-v)) + (i === mi.curIdx ? " so far" : ""));
+        return mi.future(i) || !m.count ? [] : [{ v: v, kind: v >= 0 ? "pos" : "neg", dashed: i === mi.curIdx }];
+      });
+      var best = -1, bestV = -Infinity; d.months.forEach(function (m, i) { if (m.count && i !== mi.curIdx && m.income - m.spent > bestV) { bestV = m.income - m.spent; best = i; } });
+      hint = best >= 0 ? "Best month: " + new Date(sYear, best, 1).toLocaleDateString(undefined, { month: "long" }) + " (" + money(bestV) + " saved). Tap a month to open it." : "Tap a month to open it.";
+      if (!logged) groups = null;
+    } else {
+      $("sLegend").innerHTML = '<span><i style="background:var(--over)"></i>Owed at month end</span><span><i style="background:transparent;border:2px dashed var(--ink-soft)"></i>Projected</span>';
+      var ser = debtSeries(sYear);
+      groups = ser.map(function (x, i) {
+        labels.push(MONTHS_SHORT[i] + ": " + (x ? (x.projected ? "projected " : "") + money(x.v) + " owed" : "not tracked yet"));
+        return x ? [{ v: x.v, kind: x.projected ? "proj" : "debt", faded: x.projected }] : [];
+      });
+      var known = ser.filter(Boolean);
+      if (known.length >= 2) {
+        var first = known[0].v, last = known[known.length - 1].v, ch = last - first;
+        hint = (ch <= 0 ? "Down " : "Up ") + money(Math.abs(ch)) + " across the year" + (known.some(function (x) { return x.projected; }) ? ", including projected payments" : "") +
+          ". Projections assume your scheduled payments and no new card spending.";
+      } else hint = "Months before you added your debts aren't known. Projections assume your scheduled payments and no new card spending.";
+      if (!known.length) groups = null;
     }
+    $("sChart").innerHTML = !groups ? '<p class="empty">Nothing to show for ' + sYear + " yet.</p>"
+      : sChartMode === "debt" ? lineChart(debtSeries(sYear), { labels: labels, title: "Debt over time " + sYear }) : barChart(groups, { labels: labels, title: sChartMode + " " + sYear });
+    $("sChartHint").textContent = hint;
 
-    // Categories
-    var byMain = {}, subSplit = {};
+    // ---- categories ----
+    var byMain = {}, subSplit = {}, perMonth = {};
     Object.keys(d.cats).forEach(function (id) {
       var c = catById(id), m = c ? mainOf(c) : null, k = m ? m.id : "_removed";
       byMain[k] = (byMain[k] || 0) + d.cats[id];
       if (c && isSub(c)) { subSplit[k] = subSplit[k] || []; subSplit[k].push({ name: c.name, v: d.cats[id] }); }
       else if (c && subsOf(c.id).length) { subSplit[k] = subSplit[k] || []; subSplit[k].push({ name: "General", v: d.cats[id] }); }
     });
-    var catRows = Object.keys(byMain).map(function (id) { return { id: id, v: byMain[id], c: catById(id) }; })
-      .sort(function (a, b) { return b.v - a.v; });
+    state.tx.forEach(function (t) {
+      if (t.type !== "expense" || isTransfer(t)) return;
+      var ck = countsFor(t); if (+ck.slice(0, 4) !== sYear) return;
+      var c = catById(t.category), k = c ? mainOf(c).id : "_removed";
+      perMonth[k] = perMonth[k] || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; perMonth[k][+ck.slice(5, 7) - 1] += t.amount;
+    });
+    var catRows = Object.keys(byMain).map(function (id) { return { id: id, v: byMain[id], c: catById(id) }; }).sort(function (a, b) { return b.v - a.v; });
+    var monthsForBudget = complete + (mi.curIdx >= 0 && d.months[mi.curIdx].spent > 0 ? new Date().getDate() / daysInMonth(sYear, mi.curIdx) : 0);
     $("sCats").innerHTML = catRows.length ? catRows.map(function (r) {
-      var name = r.c ? r.c.name : "Removed category", color = r.c ? r.c.color : "#999";
-      var pct = spent ? r.v / spent * 100 : 0;
+      var name = r.c ? r.c.name : "Removed category", color = r.c ? r.c.color : "#999", pct = spent ? r.v / spent * 100 : 0;
+      var pm = perMonth[r.id] || [], fullAvg = complete ? pm.reduce(function (a, v, i) { return a + (i !== mi.curIdx && !mi.future(i) ? v : 0); }, 0) / complete : r.v;
       var budgetNote = "";
-      if (r.c && r.c.budget > 0 && active) {
-        var allowed = r.c.budget * active, diff = allowed - r.v;
+      if (r.c && r.c.budget > 0 && monthsForBudget > 0) {
+        var diff = r.c.budget * monthsForBudget - r.v;
         budgetNote = " · " + (diff >= 0 ? money(diff) + " under budget" : money(-diff) + " over budget");
       }
-      return '<div class="env"><div class="env-row"><span class="dot" style="background:' + color + '"></span>' +
-        '<span class="env-name">' + esc(name) + '</span><span class="env-amt">' + money(r.v) + '</span></div>' +
-        '<div class="track"><i style="width:' + pct + '%;background:' + color + '"></i></div>' +
-        '<div class="env-note">' + Math.round(pct) + "% of spending · " + money(r.v / (active || 1)) + " a month" + budgetNote + "</div>" +
-        (subSplit[r.id] ? '<div class="subs">' + subSplit[r.id].sort(function (a, b) { return b.v - a.v; }).map(function (x) {
-          return '<span class="sub-chip plain">' + esc(x.name) + " <b>" + money(x.v) + "</b></span>"; }).join("") + "</div>" : "") + "</div>";
-    }).join("") : '<p class="empty">No spending logged this year.</p>';
-
-    // Pesos
-    $("sPhp").innerHTML = d.php > 0 ?
-      '<div class="kv"><span>Spent in pesos</span><span>' + peso(d.php) + "</span></div>" +
-      '<div class="kv"><span>Worth in GBP</span><span>' + money(d.phpGbp) + "</span></div>" +
-      '<div class="kv"><span>Average rate you got</span><span>£1 = ₱' + (d.php / d.phpGbp).toFixed(2) + "</span></div>" +
-      '<div class="kv"><span>Share of all spending</span><span>' + Math.round(d.phpGbp / spent * 100) + "%</span></div>"
-      : '<p class="empty">No peso spending this year. Pick ₱ PHP when adding an expense to track it here.</p>';
-
-    // Credit cards for the year
-    if (!state.cards.length) {
-      $("sCards").innerHTML = '<p class="empty">No credit cards added yet.</p>';
-    } else {
-      var gBal = 0, gAvail = 0, gLim = 0, gCh = 0, gPd = 0, anyLim = false, crow = "";
-      cardGroups().forEach(function (g) {
-        crow += '<tr class="grp"><td colspan="6">' + g.title + "</td></tr>";
-        g.cards.forEach(function (c) {
-          var st = cardStats(c, "", sYear), lim = c.limit || 0, avail = lim - st.balance;
-          gBal += cardToGbp(c, st.balance);
-          gCh += cardToGbp(c, st.yCharged); gPd += cardToGbp(c, st.yPaid);
-          if (lim > 0) { gLim += cardToGbp(c, lim); gAvail += cardToGbp(c, avail); anyLim = true; }
-          var availCell = lim > 0
-            ? '<td class="num' + (avail < 0 ? " neg" : "") + '"><b>' + cm(c, avail) + '</b><span class="orig">' + Math.max(0, Math.round(avail / lim * 100)) + "% free</span></td>"
-            : '<td class="num paid">No limit set</td>';
-          crow += '<tr><td><span class="cat-tag"><span class="dot" style="background:' + c.color + '"></span>' + esc(c.name) + "</span></td>" +
-            '<td class="num">' + cm(c, st.yCharged) + '</td><td class="num">' + cm(c, st.yPaid) + '</td><td class="num"><b>' + cm(c, st.balance) +
-            (isPH(c) && state.rate ? '</b><span class="orig">≈ ' + money(cardToGbp(c, st.balance)) + "</span>" : "</b>") + "</td>" +
-            '<td class="num">' + (lim > 0 ? cm(c, lim) : "–") + "</td>" + availCell + "</tr>";
+      var open = sCatOpen === r.id, drill = "";
+      if (open) {
+        var b = r.c && r.c.budget > 0 ? r.c.budget : 0, overN = 0, cnt = 0;
+        var grp = pm.map(function (v, i) {
+          if (mi.future(i)) return [];
+          if (v > 0 || i <= (mi.curIdx >= 0 ? mi.curIdx : 11)) cnt += (i !== mi.curIdx && v > 0) ? 1 : 0;
+          if (b && v > b && i !== mi.curIdx) overN++;
+          return [{ v: v, kind: b && v > b ? "neg" : "b", dashed: i === mi.curIdx }];
         });
-      });
-      var hasPH = state.cards.some(isPH);
-      var totals = '<div class="cc-totals">' +
-        '<div><span>Owed today</span><b>' + money(gBal) + "</b></div>" +
-        (anyLim ? '<div><span>Available today</span><b class="' + (gAvail < 0 ? "neg" : "") + '">' + money(gAvail) + "</b></div>" +
-          '<div><span>Credit used</span><b>' + (gLim > 0 ? Math.round(gBal / gLim * 100) : 0) + "%</b></div>" : "") +
-        '<div><span>Paid off in ' + sYear + "</span><b>" + money(gPd) + "</b></div></div>" +
-        (hasPH ? '<p class="hint" style="margin:-6px 0 12px">Totals are in £, with peso cards at today\'s rate.</p>' : "");
-      $("sCards").innerHTML = totals + "<table><thead><tr><th>Card</th><th style='text-align:right'>Charged in " + sYear + "</th><th style='text-align:right'>Paid in " + sYear + "</th><th style='text-align:right'>Owed today</th><th style='text-align:right'>Limit</th><th style='text-align:right'>Available today</th></tr></thead><tbody>" + crow + "</tbody></table>";
-    }
-
-    renderDebt(d);
-    $("sum-schart").textContent = logged ? logged + (logged === 1 ? " month" : " months") + " logged" : "";
-    var mt = {}; Object.keys(d.cats).forEach(function (id) { var c = catById(id), k = c ? mainOf(c).id : "_r"; mt[k] = (mt[k] || 0) + d.cats[id]; });
-    var top = Object.keys(mt).sort(function (a, b) { return mt[b] - mt[a]; })[0];
-    $("sum-scats").textContent = top ? "Most on " + (catById(top) ? catById(top).name : "removed category") : "";
-    $("sum-sphp").textContent = d.php > 0 ? peso(d.php) + " · " + money(d.phpGbp) : "";
-    var ow = state.cards.reduce(function (t, c) { return t + cardToGbp(c, cardStats(c, "").balance); }, 0);
-    $("sum-scards").textContent = state.cards.length ? money(ow) + " owed today" : "";
+        var lbl = pm.map(function (v, i) { return MONTHS_SHORT[i] + ": " + money(v) + (b ? " of " + money(b) : ""); });
+        var svgC = barChart(grp, { labels: lbl, title: name + " by month", max: b * 1.08 });
+        if (b) {
+          var maxV = Math.max(b * 1.08, Math.max.apply(null, pm.concat([0])));
+          var yb = 18 + (1 - b / maxV) * (240 - 18 - 28);
+          svgC = svgC.replace("</svg>", '<line x1="0" x2="720" y1="' + yb + '" y2="' + yb + '" stroke="var(--ink)" stroke-dasharray="5 4" opacity=".6"/><text x="716" y="' + (yb - 4) + '" text-anchor="end" font-size="11" fill="var(--ink-soft)">Budget ' + money(b) + "</text></svg>");
+        }
+        drill = '<div class="cat-drill">' + svgC + "<p>" + (b ? "Over budget in " + overN + " of " + cnt + " full " + (cnt === 1 ? "month" : "months") + ". " : "No monthly budget set. ") + "Tap again to close.</p></div>";
+      }
+      return '<div class="env tap" data-catdrill="' + r.id + '" role="button" tabindex="0" aria-expanded="' + open + '"><div class="env-row"><span class="dot" style="background:' + color + '"></span>' +
+        '<span class="env-name">' + esc(name) + '</span><span class="env-amt">' + money(r.v) + "</span></div>" +
+        '<div class="track"><i style="width:' + pct + "%;background:" + color + '"></i></div>' +
+        '<div class="env-note">' + Math.round(pct) + "% of spending · " + (complete && fullAvg > 0 ? money(fullAvg) + " a month" : "all this month so far") + budgetNote + "</div>" +
+        (subSplit[r.id] && subSplit[r.id].some(function (x) { return x.name !== "General"; }) ? '<div class="subs">' + subSplit[r.id].sort(function (a, b) { return b.v - a.v; }).map(function (x) {
+          return '<span class="sub-chip plain">' + esc(x.name) + " <b>" + money(x.v) + "</b></span>"; }).join("") + "</div>" : "") + drill + "</div>";
+    }).join("") + '<p class="hint">Tap a category to see it month by month.</p>' : '<p class="empty">No spending logged this year.</p>';
+    var top = catRows[0];
+    $("sum-scats").textContent = top ? "Most on " + (top.c ? top.c.name : "removed category") : "";
   }
+  document.addEventListener("click", function (e) {
+    var cb = e.target.closest("[data-chart]");
+    if (cb) { sChartMode = cb.dataset.chart; renderSummary(); return; }
+    var cd = e.target.closest("[data-catdrill]");
+    if (cd && !e.target.closest(".mcol")) { sCatOpen = sCatOpen === cd.dataset.catdrill ? null : cd.dataset.catdrill; renderSummary(); }
+  });
+
 
   // ---------- Debt to income ----------
   function cardMinPay(c) {
@@ -1722,7 +1917,14 @@ td.paid { color: var(--ink-soft); }
   function loanToGbp(l, n) { return l.cur === "PHP" ? (state.rate ? n * state.rate.value : 0) : n; }
   // Balance today: the balance you entered, reduced by each ticked payment of the linked bill since then (allowing for interest)
   function loanBill(l) { return l.billId ? billById(l.billId) : null; }
-  function loanPayment(l) { var b = loanBill(l); return b ? perMonth(b) : (l.payment || 0); }
+  // How a loan is paid: "fixed" amount, "min" (minimum payment: amount and/or % of balance, whichever is higher), or "varies"
+  function payMode(l) { if (l.payMode) return l.payMode; var b = loanBill(l); return b && b.amount > 0 ? "fixed" : (l.payment > 0 ? "fixed" : "varies"); }
+  function minDue(l, bal) { var m = Math.max(l.minAmt || 0, bal * (l.minPct || 0) / 100); return Math.min(bal, m); }
+  function loanPayment(l, bal) {
+    var b = loanBill(l);
+    if (payMode(l) === "min") { var bb = bal != null ? bal : (l._balCache || 0); return minDue(l, bb) * (b ? PER_MONTH[freqOf(b)] : 1); }
+    return b ? perMonth(b) : (l.payment || 0);
+  }
   function loanState(l) {
     var bal = l.balance || 0, r = (l.apr || 0) / 1200, paidCount = 0;
     state.tx.filter(function (t) {
@@ -1738,7 +1940,7 @@ td.paid { color: var(--ink-soft); }
       bal = Math.max(0, bal + interest - amt); paidCount++;
     });
     bal = Math.round(bal * 100) / 100;
-    var P = loanPayment(l), months = null, never = false;
+    var P = loanPayment(l, bal), months = null, never = false; l._balCache = bal;
     if (bal > 0 && P > 0) {
       if (r === 0) months = Math.ceil(bal / P);
       else if (P <= bal * r) never = true;
@@ -1774,7 +1976,12 @@ td.paid { color: var(--ink-soft); }
         { key: "kind", label: "Type", type: "select", value: l.kind, options: LOAN_KINDS },
         { key: "cur", label: "Currency", type: "select", value: l.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
         { key: "bal", label: isNew ? "Balance owed today" : "Balance owed (change only to correct it)", type: "number", value: isNew ? "" : now.toFixed(2) },
-        { key: "pay", label: "Payment each time (leave blank if it varies)", type: "number", value: (loanBill(l) ? loanBill(l).amount : l.payment) || "", full: true },
+        { key: "mode", label: "How you pay it", type: "select", value: payMode(l), full: true,
+          options: [["fixed", "A fixed amount each time"], ["min", "A minimum payment (e.g. direct debit)"], ["varies", "It varies — I'll enter it each time"]] },
+        { key: "pay", label: "Amount each time", type: "number", value: (loanBill(l) ? loanBill(l).amount : l.payment) || "", showIf: function (v) { return v.mode === "fixed"; } },
+        { key: "minAmt", label: "Minimum amount", type: "number", value: l.minAmt || "", showIf: function (v) { return v.mode === "min"; } },
+        { key: "minPct", label: "or % of balance", type: "number", step: "0.1", value: l.minPct || "", showIf: function (v) { return v.mode === "min"; } },
+        { key: "nmin", label: "Use your statement: many store cards take a set amount or a % of the balance, whichever is higher. Fill in one or both.", type: "note", showIf: function (v) { return v.mode === "min"; } },
         { key: "apr", label: "Interest rate (APR %, optional)", type: "number", step: "0.01", value: l.apr || "", full: true },
         { key: "limit", label: "Overall spending limit (optional)", type: "number", step: "1", value: l.limit || "", full: true, showIf: function (v) { return v.kind === "bnpl"; } },
         { key: "feePct", label: "Usual fee per purchase (%, optional)", type: "number", step: "0.01", value: l.feePct || "", full: true, showIf: function (v) { return v.kind === "bnpl"; } },
@@ -1796,10 +2003,12 @@ td.paid { color: var(--ink-soft); }
       ].filter(Boolean),
       onSave: function (v) {
         if (!v.name.trim()) return "Give it a name, e.g. Car finance.";
+        if (v.mode === "fixed" && !(v.pay > 0)) return "Enter the amount you pay each time, or choose another option under How you pay it.";
+        if (v.mode === "min" && !(v.minAmt > 0) && !(v.minPct > 0)) return "Enter the minimum amount, the % of balance, or both.";
         if (!(v.bal >= 0)) return "Enter the balance you owe today.";
         if (v.bill && v.bill !== "__new" && state.loans.some(function (x) { return x.billId === v.bill && x !== l; })) return "That bill is already linked to another loan.";
         if (v.bill === "__new") {
-          var nb = { id: uid(), name: v.name.trim(), amount: v.pay > 0 ? r2(v.pay) : 0, cur: v.cur, freq: v.bfreq || "monthly", category: v.bcat, pay: v.bpay };
+          var nb = { id: uid(), name: v.name.trim(), amount: v.mode === "fixed" && v.pay > 0 ? r2(v.pay) : 0, cur: v.cur, freq: v.bfreq || "monthly", category: v.bcat, pay: v.bpay };
           if (nb.freq === "monthly") {
             var dd = Math.round(v.due); if (!(dd >= 1 && dd <= 31)) return "Enter the day of the month the payment is due (1–31).";
             nb.due = dd;
@@ -1809,6 +2018,8 @@ td.paid { color: var(--ink-soft); }
           }
           state.bills.push(nb); v.bill = nb.id; l.dueDay = dd; l.payWith = v.bpay; l.category = v.bcat;
         }
+        if (v.mode !== "fixed") v.pay = 0;
+        l.payMode = v.mode; l.minAmt = v.mode === "min" ? Math.max(0, v.minAmt || 0) : 0; l.minPct = v.mode === "min" ? Math.max(0, v.minPct || 0) : 0;
         l.name = v.name.trim(); l.kind = v.kind; l.payment = Math.max(0, v.pay || 0); l.apr = Math.max(0, v.apr || 0); l.exclude = v.excl;
         if (v.kind === "bnpl") {
           l.limit = Math.max(0, v.limit || 0); l.trackBuys = !!v.track; l.feePct = Math.max(0, v.feePct || 0);
@@ -1906,13 +2117,7 @@ td.paid { color: var(--ink-soft); }
     out.head = '<div class="loan-row head' + (editable ? "" : " ro") + '"><span>Debt</span><span class="num">Owed today</span><span class="num">Payment</span><span class="num">Paid off by</span>' + (editable ? "<span></span>" : "") + "</div>";
     return out;
   }
-  function renderLoansPanel() {
-    var L = loanSummary(true);
-    $("loansPanel").innerHTML = L.legacy + (state.loans.length ? L.head + L.rows
-      : '<p class="empty">Add personal loans, car finance, buy now pay later, or money owed to family. Each one gets a monthly bill, and ticking that bill as paid lowers what you owe.</p>') +
-      '<button class="ghost" id="addLoan" style="margin-top:12px">Add a loan or debt</button>';
-    $("sum-loans").textContent = state.loans.length ? money(L.owed) + " owed" + (L.bnplAvail != null ? " · " + money(L.bnplAvail) + " BNPL available" : "") : "";
-  }
+
 
   function renderDebt(d) {
     var withIncome = d.months.filter(function (m) { return m.income > 0; });
@@ -1940,7 +2145,7 @@ td.paid { color: var(--ink-soft); }
 
     var loansBlock = '<h3 class="debt-sub">Loans and other debts</h3>' +
       (state.loans.length ? L.head + loanRows : '<p class="empty">No loans yet.</p>') +
-      (L.legacyTotal > 0 ? '<p class="hint">Includes ' + money(L.legacyTotal) + " a month from bills marked as debt. Set them up as loans under This month → Loans and debts.</p>" : "");
+      (L.legacyTotal > 0 ? '<p class="hint">Includes ' + money(L.legacyTotal) + " a month from bills marked as debt. Set them up as loans on the Debts tab.</p>" : "");
 
     var left, dtiRatio = null;
     if (!avgIncome) {
@@ -1956,31 +2161,40 @@ td.paid { color: var(--ink-soft); }
         (totalDebt > 0 ? '<div class="kv"><span>Total debt vs income</span><span>' + (totalDebt / avgIncome).toFixed(1) + "× a month's income</span></div>" : "");
     }
     var right = "<h3>Card minimum payments</h3>" +
-      (state.cards.some(function (c) { return !(c.minPay > 0); }) ? '<p class="hint" style="margin:0 0 4px">For exact figures, add each minimum from your statement in the card\'s Edit form on the This month tab.</p>' : "") +
+      (state.cards.some(function (c) { return !(c.minPay > 0); }) ? '<p class="hint" style="margin:0 0 4px">For exact figures, add each minimum from your statement in the card\'s Edit form on the Cards tab.</p>' : "") +
       (state.cards.length ? cardRows : '<p class="empty">No credit cards added.</p>') +
       '<p class="hint" style="margin-top:12px">Loan payments above are included automatically. Rent, utilities and subscriptions count as living costs, not debt.</p>';
 
-    $("sDebt").innerHTML = totals + loansBlock +
-      '<h3 class="debt-sub">Debt to income</h3><div class="dti"><div>' + left + "</div><div>" + right + "</div></div>" +
+    $("sDebt").innerHTML =
+      '<div class="dti"><div>' + left + "</div><div>" + right + "</div></div>" +
       "";
-    $("sum-sdebt").textContent = totalDebt > 0 ? money(totalDebt) + (dtiRatio != null ? " · " + Math.round(dtiRatio) + "% of income" : "") : "";
+    $("sum-ddti").textContent = dtiRatio != null ? Math.round(dtiRatio) + "% of income" : "";
     $("sDebt").innerHTML += '<p class="hint" style="margin-top:14px">Based on the income you log (usually take-home pay), so lenders using pre-tax income will see a lower figure. Under 36% is generally seen as healthy and over 43% as high. Payoff dates are estimates. This is a rough guide, not financial advice.</p>';
+    return { totalDebt: totalDebt, cardOwed: cardOwed, loanOwed: loanOwed, payments: payments, loanInt: loanInt, bnplAv: bnplAv, dtiRatio: dtiRatio, hasPH: hasPH, legacy: L.legacy };
   }
 
 
+  var currentTab = "month";
   function showTab(which) {
-    var sum = which === "summary";
-    $("monthView").hidden = sum; $("summaryView").hidden = !sum;
-    $("tabMonth").setAttribute("aria-selected", sum ? "false" : "true");
+    currentTab = which;
+    var sum = which === "summary", cards = which === "cards", debts = which === "debts";
+    $("monthView").hidden = which !== "month"; $("summaryView").hidden = !sum; $("cardsView").hidden = !cards; $("debtsView").hidden = !debts;
+    $("tabDebts").setAttribute("aria-selected", debts ? "true" : "false");
+    $("tabMonth").setAttribute("aria-selected", which === "month" ? "true" : "false");
     $("tabSummary").setAttribute("aria-selected", sum ? "true" : "false");
-    $("exportCsv").hidden = sum; $("exportYear").hidden = !sum;
-    if (sum) { sYear = view.y; renderSummary(); } else render();
+    $("tabCards").setAttribute("aria-selected", cards ? "true" : "false");
+    $("exportCsv").hidden = which !== "month"; $("exportYear").hidden = !sum;
+    if (sum) { sYear = view.y; renderSummary(); } else if (cards) { render(); } else if (debts) { render(); } else render();
     window.scrollTo(0, 0);
   }
   function openMonth(i) { view.y = sYear; view.m = i; defaultDate(); showTab("month"); }
 
   $("tabMonth").onclick = function () { showTab("month"); };
   $("tabSummary").onclick = function () { showTab("summary"); };
+  $("tabCards").onclick = function () { showTab("cards"); };
+  $("tabDebts").onclick = function () { showTab("debts"); };
+  $("caPrev").onclick = function () { view.m--; if (view.m < 0) { view.m = 11; view.y--; } defaultDate(); renderCardsPage(); };
+  $("caNext").onclick = function () { view.m++; if (view.m > 11) { view.m = 0; view.y++; } defaultDate(); renderCardsPage(); };
   $("yPrev").onclick = function () { sYear--; renderSummary(); };
   $("yNext").onclick = function () { sYear++; renderSummary(); };
   $("summaryView").addEventListener("click", function (e) {
@@ -2030,7 +2244,7 @@ td.paid { color: var(--ink-soft); }
     var bs = "";
     if (state.bills.length) {
       var ym = monthKey(), mF = new Date(view.y, view.m, 1), mT = new Date(view.y, view.m + 1, 1), tot = 0, paid = 0;
-      state.bills.forEach(function (b) { occurrences(b, mF, mT).forEach(function (o) { tot++; if (occPayment(b, o.key)) paid++; }); });
+      state.bills.forEach(function (b) { occurrences(b, mF, mT).forEach(function (o) { if (occPayment(b, o.key)) { tot++; paid++; } else if (!nothingDue(b, o.key) && !billFinished(b)) tot++; }); });
       if (state.payday && ymOf(new Date()) === ym) {
         var r = dueBeforePayday();
         bs = r.items.length ? r.items.length + " due before payday · " + money(r.total) : "All covered until payday";
@@ -2218,7 +2432,7 @@ td.paid { color: var(--ink-soft); }
           showIf: function (v) { return v.freq !== "monthly"; } },
         { key: "cat", label: "Category", type: "select", value: b.category, options: catOptions() },
         { key: "pay", label: "Paid with", type: "select", value: b.pay || "cash", options: payOptions(), full: true },
-        { key: "n", label: "Payments you've already ticked keep their amounts. Changing how often it's paid can move which dates show as due, so check the next few months after changing it. If this bill repays a loan, link it from Loans and debts.", type: "note" }
+        { key: "n", label: "Payments you've already ticked keep their amounts. Changing how often it's paid can move which dates show as due, so check the next few months after changing it. If this bill repays a loan, link it from the Debts tab.", type: "note" }
       ],
       onSave: function (v) {
         if (!v.name.trim()) return "Give the bill a name.";
@@ -2397,10 +2611,9 @@ td.paid { color: var(--ink-soft); }
     var cp = currentProfile();
     lockedView = !!cp.locked;
     $("lockScreen").hidden = !lockedView;
-    if (lockedView) { $("monthView").hidden = true; $("summaryView").hidden = true; $("backupNag").hidden = true; }
+    if (lockedView) { $("monthView").hidden = true; $("summaryView").hidden = true; $("cardsView").hidden = true; $("debtsView").hidden = true; $("backupNag").hidden = true; }
     else {
-      var sum = $("tabSummary").getAttribute("aria-selected") === "true";
-      $("monthView").hidden = sum; $("summaryView").hidden = !sum;
+      $("monthView").hidden = currentTab !== "month"; $("summaryView").hidden = currentTab !== "summary"; $("cardsView").hidden = currentTab !== "cards"; $("debtsView").hidden = currentTab !== "debts";
     }
     document.querySelector(".tabs").style.visibility = lockedView ? "hidden" : "";
     document.querySelector(".foot").hidden = lockedView;
@@ -2650,7 +2863,7 @@ td.paid { color: var(--ink-soft); }
     var sel = $("link"), prev = sel.value, T = linkTargets(), fmt = function (d) { return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
     var h = '<option value="">Everyday spending (not a bill or card)</option>';
     if (T.bills.length) h += '<optgroup label="Bills not paid yet">' + T.bills.map(function (x) {
-      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + (planLoanFor(x.b) || anyLoanFor(x.b) ? "≈ " + money(billDue(x.b, x.o.key)) : billAmtText(x.b)) + "</option>"; }).join("") + "</optgroup>";
+      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + ((planLoanFor(x.b) || anyLoanFor(x.b)) && billDue(x.b, x.o.key) > 0 ? "≈ " + money(billDue(x.b, x.o.key)) : billAmtText(x.b)) + "</option>"; }).join("") + "</optgroup>";
     if (T.cards.length) h += '<optgroup label="Paying off a credit card">' + T.cards.map(function (c) {
       return '<option value="card:' + c.id + '">' + esc(c.name) + " · " + cm(c, cardStats(c, "").balance) + " owed</option>"; }).join("") + "</optgroup>";
     sel.innerHTML = h;
@@ -2689,7 +2902,7 @@ td.paid { color: var(--ink-soft); }
   }
   $("link").onchange = function () { applyLink(); updatePlanRow(); };
   function startPayment(v) {
-    if (!$("summaryView").hidden) showTab("month");
+    if (currentTab !== "month") showTab("month");
     setType("expense");
     renderLinkOptions(); $("link").value = v; applyLink();
     $("link").closest(".panel").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2716,6 +2929,173 @@ td.paid { color: var(--ink-soft); }
   $("planTerm").addEventListener("change", updatePlanRow);
   $("planFee").addEventListener("input", function () { feeTouched = true; updatePlanRow(); });
   $("amt").addEventListener("input", updatePlanRow);
+
+  // ---------- Card activity: one card's charges and payments for the month ----------
+  var caCardId = null;
+  function renderCardActivity(mk) {
+    var box = $("cardAct");
+    if (!state.cards.length) { box.innerHTML = '<p class="empty">Add a credit card under Your cards below, then its monthly charges show here.</p>'; return; }
+    if (!caCardId || !cardById(caCardId)) caCardId = (ui.caCard && cardById(ui.caCard)) ? ui.caCard : state.cards[0].id;
+    var c = cardById(caCardId), start = mk + "-01";
+    var opening = c.opening || 0, charges = [], payments = [];
+    state.tx.forEach(function (t) {
+      var isCharge = t.type === "expense" && t.pay === c.id, isPay = t.type === "cardpay" && t.card === c.id;
+      if (!isCharge && !isPay) return;
+      var v = inCard(c, t);
+      if (t.date < start) opening += isCharge ? v : -v;
+      else if (t.date.slice(0, 7) === mk) (isCharge ? charges : payments).push({ t: t, v: v });
+    });
+    var chT = charges.reduce(function (a, x) { return a + x.v; }, 0), pyT = payments.reduce(function (a, x) { return a + x.v; }, 0);
+    var closing = opening + chT - pyT, label = ymLabel(mk);
+    var rows = charges.concat(payments).sort(function (a, b) { return b.t.date.localeCompare(a.t.date); });
+    box.innerHTML = '<h2 style="margin-bottom:12px">' + esc(c.name) + (isPH(c) ? " (PH)" : "") + "</h2>" +
+      '<div class="ca-flow">' +
+        "<div><span>Start of " + label + "</span><b>" + cm(c, opening) + "</b></div>" +
+        "<div><span>Charges (" + charges.length + ")</span><b>+" + cm(c, chT) + "</b></div>" +
+        "<div><span>Payments (" + payments.length + ")</span><b>−" + cm(c, pyT) + "</b></div>" +
+        '<div class="end"><span>End of ' + label + "</span><b>" + cm(c, closing) + "</b></div></div>" +
+      (rows.length ? '<div class="tx-scroll"><table class="ca-table"><thead><tr><th>Date</th><th>What</th><th style="text-align:right">Amount</th><th></th></tr></thead><tbody>' +
+        rows.map(function (x) {
+          var t = x.t, isPay = t.type === "cardpay";
+          var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
+          var orig = !isPay && t.cur !== (isPH(c) ? "PHP" : "GBP") ? '<span class="orig">' + (t.cur === "PHP" ? peso(t.orig) : money(t.orig)) + "</span>" : "";
+          return '<tr><td style="white-space:nowrap">' + d + "</td><td>" + esc(t.note || (isPay ? "Payment" : catLabel(t.category))) +
+            '<span class="pay-tag">' + (isPay ? "Payment" : '<span class="dot" style="background:' + catColor(t.category) + ';display:inline-block;width:7px;height:7px;margin-right:4px"></span>' + esc(catLabel(t.category)) + (t.bill ? " · bill" : "")) + "</span></td>" +
+            '<td class="num' + (isPay ? " pay-in" : "") + '">' + (isPay ? "−" : "") + cm(c, x.v) + orig + "</td>" +
+            '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit">Edit</button></td></tr>';
+        }).join("") + "</tbody></table></div>"
+        : '<p class="empty">No charges or payments on ' + esc(c.name) + " in " + label + ". Choose " + esc(c.name) + " under Paid with when you add an expense.</p>");
+  }
+
+  // ---------- Cards page ----------
+  function renderCardsPage() {
+    var mk = monthKey();
+    $("caMonth").textContent = new Date(view.y, view.m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
+    if (!state.cards.length) {
+      $("caCaption").textContent = "No credit cards yet";
+      $("caCards").innerHTML = ""; renderCardActivity(mk); return;
+    }
+    if (!caCardId || !cardById(caCardId)) caCardId = (ui.caCard && cardById(ui.caCard)) ? ui.caCard : state.cards[0].id;
+    $("caCaption").textContent = "Tap a card to see its " + ymLabel(mk) + " charges";
+    $("caCards").innerHTML = state.cards.map(function (c) {
+      var ch = 0; state.tx.forEach(function (t) { if (t.type === "expense" && t.pay === c.id && t.date.slice(0, 7) === mk) ch += inCard(c, t); });
+      var bal = cardStats(c, "").balance;
+      return '<button class="ca-card" style="--cc:' + c.color + '" data-cacard="' + c.id + '" aria-pressed="' + (c.id === caCardId ? "true" : "false") + '">' +
+        "<span>" + esc(c.name) + "</span><b>" + cm(c, ch) + "</b><small>charged this month</small><small>" + cm(c, bal) + " owed now</small></button>";
+    }).join("");
+    renderCardActivity(mk);
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-cacard]"); if (!b) return;
+    caCardId = b.dataset.cacard; ui.caCard = caCardId;
+    try { localStorage.setItem(UIKEY, JSON.stringify(ui)); } catch (er) {}
+    renderCardsPage();
+  });
+
+  // ---------- Debts page ----------
+  var dSel = null;
+  function payoffText(l, st, bill) {
+    if (st.balance <= 0) return { main: "Paid off", sub: "" };
+    if (bill) {
+      var pj = loanProjection(bill);
+      if (pj && pj._left <= 0.005) {
+        var keys = Object.keys(pj).filter(function (k) { return pj[k] > 0; }).sort();
+        if (keys.length) {
+          var last = pj._dates[keys[keys.length - 1]].toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+          return { main: keys.length === 1 ? "With the next payment" : last, sub: keys.length + (keys.length === 1 ? " payment" : " payments") + " left" };
+        }
+      }
+    }
+    if (st.never) return { main: "Not at this payment", sub: "Payment doesn't cover the interest" };
+    if (st.payoff) return { main: "Around " + st.payoff.toLocaleDateString(undefined, { month: "short", year: "numeric" }), sub: st.months + " months at the current payment" };
+    return { main: "Unknown", sub: bill && isVar(bill) ? "Estimated after your first payment" : "Add a payment amount to estimate" };
+  }
+  function nextPayment(l) {
+    var bill = loanBill(l); if (!bill) return null;
+    var pj = loanProjection(bill); if (!pj) return null;
+    var k = Object.keys(pj).filter(function (x) { return !occPayment(bill, x) && pj[x] !== 0; }).sort()[0];
+    return k ? { key: k, date: pj._dates[k], amt: pj[k] } : null;
+  }
+  function renderDebtsPage() {
+    var o = renderDebt(yearData(view.y));
+    $("dBig").textContent = money(o.totalDebt);
+    $("dFigs").innerHTML =
+      "<span>Credit cards <b>" + money(o.cardOwed) + "</b></span>" +
+      "<span>Loans and BNPL <b>" + money(o.loanOwed) + "</b></span>" +
+      "<span>Repayments a month <b>" + money(o.payments) + "</b>" + (o.loanInt > 0 ? "<small>≈ " + money(o.loanInt) + " is interest</small>" : "") + "</span>" +
+      (o.dtiRatio != null ? "<span>Debt to income <b>" + Math.round(o.dtiRatio) + "%</b></span>" : "") +
+      (o.bnplAv != null ? "<span>BNPL available <b>" + money(o.bnplAv) + "</b></span>" : "");
+    $("dLegacy").innerHTML = o.legacy || "";
+    if (!state.loans.length) {
+      $("dCaption").textContent = "No loans or debts yet";
+      $("dTiles").innerHTML = ""; $("dDetailWrap").hidden = true; return;
+    }
+    if (!dSel || !state.loans.some(function (l) { return l.id === dSel; })) dSel = (ui.debtSel && state.loans.some(function (l) { return l.id === ui.debtSel; })) ? ui.debtSel : state.loans[0].id;
+    $("dCaption").textContent = "Tap a debt to see its payments and details";
+    $("dTiles").innerHTML = state.loans.map(function (l, i) {
+      var st = loanState(l), nx = nextPayment(l), col = PALETTE[(i + 3) % PALETTE.length];
+      var line = st.balance <= 0 ? '<small style="color:var(--good)">Paid off</small>'
+        : nx ? '<small class="nx' + (nx.date < new Date(new Date().setHours(0, 0, 0, 0)) ? " warn" : "") + '">Next ' + (nx.amt != null ? loanMoney(l, nx.amt) : "payment") + " · " + nx.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + "</small>"
+        : "<small>" + (loanBill(l) ? "No upcoming payment" : "Not in Bills yet") + "</small>";
+      return '<button class="ca-card" style="--cc:' + col + '" data-dsel="' + l.id + '" aria-pressed="' + (l.id === dSel ? "true" : "false") + '">' +
+        "<span>" + esc(l.name) + "</span><b>" + loanMoney(l, st.balance) + "</b>" + line + "</button>";
+    }).join("");
+    $("dDetailWrap").hidden = false;
+    $("dDetail").innerHTML = loanDetail(state.loans.find(function (l) { return l.id === dSel; }));
+  }
+  function loanDetail(l) {
+    var st = loanState(l), bill = loanBill(l), po = payoffText(l, st, bill), f = function (n) { return loanMoney(l, n); };
+    var head = '<div class="dd-head"><div><h2>' + esc(l.name) + "</h2><small>" + kindLabel(l.kind) + (l.apr ? " · " + l.apr + "% APR" : "") +
+      (bill ? " · paid through Bills from " + esc(payInfo(bill.pay).name) : " · not in Bills yet") + (l.exclude ? " · not in debt-to-income" : "") + "</small></div>" +
+      '<button class="edit-btn" data-editloan="' + l.id + '">Edit</button></div>';
+    var payTxt = !bill ? (l.payment ? f(l.payment) + " a month" : "Not set")
+      : payMode(l) === "min" ? "Minimum ≈ " + f(minDue(l, st.balance)) + " " + freqLabel(bill).toLowerCase()
+      : billAmtText(bill) + " " + freqLabel(bill).toLowerCase();
+    var flow = '<div class="ca-flow">' +
+      "<div><span>Owed today</span><b>" + f(st.balance) + "</b>" + (l.cur === "PHP" && state.rate ? "<span>≈ " + money(loanToGbp(l, st.balance)) + "</span>" : "") + "</div>" +
+      "<div><span>Payment</span><b style=\"font-size:15px\">" + payTxt + "</b></div>" +
+      "<div><span>Paid off by</span><b style=\"font-size:15px\">" + po.main + "</b>" + (po.sub ? "<span>" + po.sub + "</span>" : "") + "</div>" +
+      (l.kind === "bnpl" && l.limit > 0 ? '<div class="end"><span>Available to use</span><b>' + f(l.limit - st.balance) + "</b><span>of " + f(l.limit) + "</span></div>"
+        : st.monthlyInterest > 0 ? '<div class="end"><span>Interest a month</span><b>≈ ' + f(st.monthlyInterest) + "</b></div>" : "<div><span>Interest</span><b>None</b></div>") +
+      "</div>";
+    var addBill = !bill && st.balance > 0 ? '<p class="hint">This debt isn\'t in Bills yet, so payments won\'t lower it automatically. <button class="small-btn" data-loanbill="' + l.id + '">Add to Bills</button></p>' : "";
+    // upcoming payments
+    var up = "";
+    if (bill && st.balance > 0) {
+      var pj = loanProjection(bill), ks = pj ? Object.keys(pj).filter(function (k) { return !occPayment(bill, k) && pj[k] !== 0; }).sort().slice(0, 6) : [];
+      up = ks.map(function (k) {
+        return '<div class="kv"><span>' + pj._dates[k].toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) + "</span><span>" + (pj[k] == null ? "Varies" : f(pj[k])) + "</span></div>";
+      }).join("");
+    }
+    // recent payments and purchases
+    var pays = state.tx.filter(function (t) { return t.type === "expense" && (t.loan === l.id || (bill && t.bill === bill.id)); }).sort(function (a, b) { return b.date.localeCompare(a.date); }).slice(0, 5);
+    var buys = l.kind === "bnpl" ? state.tx.filter(function (t) { return t.type === "expense" && t.pay === l.id; }).sort(function (a, b) { return b.date.localeCompare(a.date); }).slice(0, 5) : [];
+    var row = function (t, neg) { return '<div class="kv"><span>' + new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) + " · " + esc(t.note || catLabel(t.category)) +
+      (t.plan && t.plan.months ? " · " + t.plan.months + " months" : "") + "</span><span>" + (neg ? "−" : "+") + f(inLoanCur(l, t)) + "</span></div>"; };
+    // plans
+    var plans = "";
+    if (l.kind === "bnpl") {
+      var act = planPurchases(l).map(function (t) { return { t: t, p: planInfo(l, t) }; }).filter(function (x) { return x.p.active; });
+      if (act.length) plans = "<h3>Active plans</h3>" + act.map(function (x) {
+        var n = x.p.months || 1;
+        return '<div class="kv"><span>' + esc(x.t.note || catLabel(x.t.category)) + (x.p.months ? " · " + x.p.done + " of " + n + " paid" : " · due in full") + "</span><span>" + f(x.p.monthly) + (x.p.months ? "/month" : "") + "</span></div>";
+      }).join("");
+      var terms = [0, 3, 6, 12].filter(function (m) { return l.limits && l.limits[m] > 0; });
+      if (terms.length) plans += terms.map(function (m) { return '<div class="kv"><span>Left on ' + (m ? m + "-month plans" : "pay in full") + "</span><span>" + f(Math.max(0, l.limits[m] - termUsed(l, m))) + "</span></div>"; }).join("");
+    }
+    return head + flow + addBill +
+      '<div class="dd-cols"><div class="dd-list"><h3>Next payments</h3>' + (up || '<p class="empty">' + (st.balance > 0 ? "None scheduled." : "Nothing left to pay.") + "</p>") +
+        (plans ? '<div style="margin-top:14px">' + plans + "</div>" : "") + "</div>" +
+      '<div class="dd-list"><h3>Recent payments</h3>' + (pays.length ? pays.map(function (t) { return row(t, true); }).join("") : '<p class="empty">No payments recorded yet.</p>') +
+        (l.kind === "bnpl" ? '<h3 style="margin-top:14px">Recent purchases</h3>' + (buys.length ? buys.map(function (t) { return row(t, false); }).join("") : '<p class="empty">' + (l.trackBuys ? "None yet. Choose " + esc(l.name) + " under Paid with." : "Purchases aren't tracked for this one.") + "</p>") : "") +
+      "</div></div>";
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest("[data-dsel]"); if (!b) return;
+    dSel = b.dataset.dsel; ui.debtSel = dSel;
+    try { localStorage.setItem(UIKEY, JSON.stringify(ui)); } catch (er) {}
+    renderDebtsPage();
+  });
 
   // ---------- Profiles ----------
   var P_COLORS = ["#2F6B4F", "#8E4D6E", "#3C6E91", "#B0613A", "#6A5ACD", "#3F8C8C", "#9C6B3E"];
