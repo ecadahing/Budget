@@ -1907,7 +1907,9 @@ td.paid { color: var(--ink-soft); }
   function cardMinPay(c) {
     var bal = Math.max(0, cardStats(c, "").balance);
     if (c.minPay > 0) return { v: c.minPay, est: false };
-    return { v: Math.round(bal * 0.03 * 100) / 100, est: true };
+    // Typical UK minimum: 3% of the balance or £5, whichever is higher (never more than the balance)
+    var floor = isPH(c) ? 0 : 5;
+    return { v: Math.round(Math.min(bal, Math.max(bal * 0.03, bal > 0 ? floor : 0)) * 100) / 100, est: true };
   }
   // ---------- Loans ----------
   var LOAN_KINDS = [["personal", "Personal loan"], ["car", "Car finance"], ["student", "Student loan"], ["bnpl", "Buy now, pay later"],
@@ -2128,7 +2130,7 @@ td.paid { color: var(--ink-soft); }
     state.cards.forEach(function (c) {
       var mp = cardMinPay(c);
       cardPay += cardToGbp(c, mp.v); cardOwed += cardToGbp(c, Math.max(0, cardStats(c, "").balance));
-      cardRows += '<div class="kv"><span>' + esc(c.name) + (mp.est ? " <small>(estimated at 3%)</small>" : "") + "</span><span>" + cm(c, mp.v) + "</span></div>";
+      cardRows += '<div class="kv"><span>' + esc(c.name) + (mp.est ? " <small>(estimated: " + (isPH(c) ? "3%" : "3% or £5") + ")</small>" : "") + "</span><span>" + cm(c, mp.v) + "</span></div>";
     });
 
     var L = loanSummary(false), loanOwed = L.owed, loanPay = L.pay, loanPayDti = L.payDti, loanInt = L.interest, loanRows = L.rows, billTotal = L.legacyTotal;
@@ -2161,9 +2163,20 @@ td.paid { color: var(--ink-soft); }
         (totalDebt > 0 ? '<div class="kv"><span>Total debt vs income</span><span>' + (totalDebt / avgIncome).toFixed(1) + "× a month's income</span></div>" : "");
     }
     var right = "<h3>Card minimum payments</h3>" +
-      (state.cards.some(function (c) { return !(c.minPay > 0); }) ? '<p class="hint" style="margin:0 0 4px">For exact figures, add each minimum from your statement in the card\'s Edit form on the Cards tab.</p>' : "") +
+      (state.cards.some(function (c) { return !(c.minPay > 0); }) ? '<p class="hint" style="margin:0 0 4px">Estimates are rough. For exact figures, add each minimum from your statement in the card\'s Edit form on the Cards tab.</p>' : "") +
       (state.cards.length ? cardRows : '<p class="empty">No credit cards added.</p>') +
-      '<p class="hint" style="margin-top:12px">Loan payments above are included automatically. Rent, utilities and subscriptions count as living costs, not debt.</p>';
+      '<h3 style="margin-top:16px">Loan and BNPL payments</h3>' + (function () {
+        var live = state.loans.filter(function (l) { return loanState(l).balance > 0; });
+        if (!live.length) return '<p class="empty">No loans with a balance.</p>';
+        return live.map(function (l) {
+          var pm = loanPayment(l, loanState(l).balance), bill = loanBill(l), note = "";
+          if (l.exclude) note = " <small>(left out)</small>";
+          else if (!(pm > 0)) note = " <small>(" + (bill && isVar(bill) ? "varies, counted after first payment" : "no payment set") + ")</small>";
+          else if (bill && freqOf(bill) !== "monthly") note = " <small>(" + freqLabel(bill).toLowerCase() + ", shown a month)</small>";
+          return '<div class="kv"><span>' + esc(l.name) + note + "</span><span" + (l.exclude ? ' style="text-decoration:line-through;color:var(--ink-soft)"' : "") + ">" + money(loanToGbp(l, pm)) + "</span></div>";
+        }).join("");
+      })() + (L.legacyTotal > 0 ? '<div class="kv"><span>Bills marked as debt</span><span>' + money(L.legacyTotal) + "</span></div>" : "") +
+      '<p class="hint" style="margin-top:12px">Everything listed is added up as your monthly debt repayments. Rent, utilities and subscriptions count as living costs, not debt.</p>';
 
     $("sDebt").innerHTML =
       '<div class="dti"><div>' + left + "</div><div>" + right + "</div></div>" +
