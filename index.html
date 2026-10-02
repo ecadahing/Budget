@@ -34,6 +34,7 @@
   --line: #2E3E38; --brass: #D3A54A; --over: #E0756D; --good: #7CC3A0; --field: #0F1714;
 }
 *, *::before, *::after { box-sizing: inherit; }
+[hidden] { display: none !important; }
 html { scroll-padding-top: env(safe-area-inset-top, 0px); }
 body {
   margin: 0; background: var(--paper); color: var(--ink);
@@ -63,10 +64,13 @@ header.top { display: flex; justify-content: space-between; align-items: center;
   line-height: 1; margin: 6px 0 18px; letter-spacing: -0.035em;
 }
 .left.neg { color: var(--over); }
-.hero-figs { display: flex; gap: 28px; flex-wrap: wrap; margin-top: 12px; font-size: 15px; color: var(--ink-soft); }
-.hero-figs b { color: var(--ink); font-weight: 600; }
+.hero-figs { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px 24px; margin-top: 14px; font-size: 13px; color: var(--ink-soft); max-width: 760px; }
+.hero-figs span { display: flex; flex-direction: column; gap: 2px; }
+.hero-figs b { color: var(--ink); font-weight: 600; font-size: 17px; font-variant-numeric: tabular-nums; }
+.hero-figs small { font-size: 12px; color: var(--ink-soft); }
 
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+.grid > * { min-width: 0; }
 @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
 .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
 .panel h2 { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 20px; margin: 0 0 14px; }
@@ -141,14 +145,17 @@ td.inc { color: var(--good); }
 .lk-forgot summary { cursor: pointer; text-align: center; }
 .lk-forgot p { margin: 10px 0; }
 .lockdot { font-size: 12px; margin-left: 4px; }
+.payday-bar { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 5px 5px 5px 14px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; font-size: 14px; color: var(--ink-soft); }
+.payday-bar b { color: var(--ink); }
+.payday-bar .small-btn { border-radius: 999px; padding: 4px 12px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
 .tabs { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
-.profile { position: relative; }
+.profile { position: relative; margin-left: auto; }
 .profile summary { list-style: none; display: flex; align-items: center; gap: 8px; cursor: pointer; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; font-weight: 500; }
 .profile summary::-webkit-details-marker { display: none; }
 .avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-content: center; color: #fff; font-weight: 600; font-size: 14px; flex: none; }
 .caret { color: var(--ink-soft); font-size: 12px; }
-.pmenu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; width: min(300px, calc(100vw - 40px)); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 8px 24px rgba(20, 40, 30, .16); }
+.pmenu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; width: min(300px, calc(100vw - 40px)); max-height: calc(100vh - 140px); overflow-y: auto; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: 0 8px 24px rgba(20, 40, 30, .16); }
 .pmenu-title { margin: 0 0 8px; font-size: 13px; color: var(--ink-soft); }
 .prow { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; border-radius: 8px; padding: 6px; text-align: left; }
 .prow:hover { background: var(--paper); }
@@ -159,8 +166,6 @@ td.inc { color: var(--good); }
 .padd input { flex: 1; min-width: 0; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
 .pactions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
 .pactions + .pactions { margin-top: 10px; }
-.ppay { align-items: center; font-size: 14px; color: var(--ink-soft); }
-.ppay input { width: 58px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
 .small-btn.danger { color: var(--over); }
 .tabs button { background: none; border: 0; border-radius: 999px; padding: 7px 18px; font-weight: 500; color: var(--ink-soft); }
 .tabs button[aria-selected="true"] { background: var(--ink); color: var(--card); }
@@ -253,6 +258,8 @@ td.neg { color: var(--over); }
   .loan-row > :nth-child(3), .loan-row > :nth-child(4) { grid-column: 1; text-align: left; font-size: 13px; color: var(--ink-soft); }
   .loan-row > :nth-child(5) { grid-row: 1; grid-column: 2; }
   .loan-row > :nth-child(2) { grid-row: 2; grid-column: 2; }
+  .loan-row.ro { grid-template-columns: 1fr auto; }
+  .loan-row.ro > :nth-child(2) { grid-row: 1; grid-column: 2; }
 }
 .legacy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: var(--paper); border-left: 4px solid var(--brass); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
 .legacy p { margin: 0; flex: 1; min-width: 220px; }
@@ -270,8 +277,6 @@ tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); f
 .pd-list .bill-check { width: 22px; height: 22px; }
 .pd-list .late { color: var(--over); font-weight: 500; }
 .pd-list .amt { font-variant-numeric: tabular-nums; text-align: right; }
-.pd-set { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); margin-top: 10px; }
-.pd-set input { width: 64px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; }
 .bills-sum { margin: -6px 0 12px; color: var(--ink-soft); font-size: 15px; }
 .bills-sum b { color: var(--ink); }
 .bill { display: grid; grid-template-columns: auto 1fr auto auto auto; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); }
@@ -312,7 +317,7 @@ tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); f
 .bill-form input, .bill-form select { background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 16px; width: 100%; }
 .pay-tag { display: block; font-size: 12px; color: var(--ink-soft); }
 td.paid { color: var(--ink-soft); }
-.foot { margin-top: 28px; font-size: 13px; color: var(--ink-soft); }
+.foot { margin-top: 28px; font-size: 13px; color: var(--ink-soft); display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--card); padding: 9px 16px; border-radius: 8px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .toast.show { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
@@ -335,11 +340,6 @@ td.paid { color: var(--ink-soft); }
         <button class="small-btn" id="pAdd">Add profile</button>
       </div>
       <div id="pActions">
-      <div class="pactions ppay">
-        <label for="pPayday">Payday for <span id="pPayName"></span>: day</label>
-        <input id="pPayday" type="number" min="1" max="31" inputmode="numeric" placeholder="28">
-        <button class="small-btn" id="pPaySave">Save</button>
-      </div>
       <div class="pactions">
         <span class="pbackup" id="pBackupInfo"></span>
         <button class="small-btn" id="backup">Back up this profile</button>
@@ -382,8 +382,9 @@ td.paid { color: var(--ink-soft); }
       <div class="month-label" id="monthLabel"></div>
       <button id="next" aria-label="Next month">›</button>
     </div>
-    <div class="tools">
-      <button class="ghost" id="exportCsv">Export month (CSV)</button>
+    <div class="payday-bar">
+      <span id="paydayText"></span>
+      <button class="small-btn" id="paydayBtn">Set payday</button>
     </div>
   </header>
 
@@ -498,7 +499,6 @@ td.paid { color: var(--ink-soft); }
         <div class="month-label" id="yearLabel"></div>
         <button id="yNext" aria-label="Next year">›</button>
       </div>
-      <div class="tools"><button class="ghost" id="exportYear">Export year (CSV)</button></div>
     </header>
 
     <section class="hero">
@@ -533,7 +533,11 @@ td.paid { color: var(--ink-soft); }
     </div>
   </div>
 
-  <p class="foot">Your data is saved in this browser only. Back up from the profile menu now and then, and use Restore to move it to another device.</p>
+  <p class="foot">Your data is saved in this browser only, so back up now and then.
+    <button class="small-btn" id="footBackup">Back up this profile</button>
+    <button class="small-btn" id="footRestore">Restore from backup</button>
+    <button class="small-btn" id="exportCsv">Export month (CSV)</button>
+    <button class="small-btn" id="exportYear" hidden>Export year (CSV)</button></p>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -797,8 +801,7 @@ td.paid { color: var(--ink-soft); }
     if (!state.payday) {
       box.className = "payday";
       box.innerHTML = '<div class="pd-title">See what\'s due before payday</div>' +
-        '<div class="pd-sub">Tell the tracker which day you get paid, and it will list the bills you still need to cover until then.</div>' +
-        '<div class="pd-set">I get paid on day <input id="pdDay" type="number" min="1" max="31" inputmode="numeric" placeholder="25" aria-label="Payday, day of month"> of each month <button class="small-btn" id="pdSave">Save</button></div>';
+        '<div class="pd-sub">Set your payday with the button at the top of the page, and the bills you still need to cover until then will be listed here.</div>';
       return false;
     }
     var r = dueBeforePayday(), t0 = new Date(); t0.setHours(0, 0, 0, 0);
@@ -807,8 +810,7 @@ td.paid { color: var(--ink-soft); }
       box.className = "payday clear";
       box.innerHTML = '<div class="pd-title">Payday ' + r.payday.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }) +
         " · " + (dd === 1 ? "tomorrow" : "in " + dd + " days") + "</div>" +
-        '<div class="pd-sub">Add your bills below and the ones due before payday will be listed here.</div>' +
-        '<div class="pd-set">Paid on day <input id="pdDay" type="number" min="1" max="31" inputmode="numeric" value="' + state.payday + '" aria-label="Payday, day of month"> of each month <button class="small-btn" id="pdSave">Update</button></div>';
+        '<div class="pd-sub">Add your bills below and the ones due before payday will be listed here.</div>';
       return true;
     }
     var days = Math.round((r.payday - t0) / 86400000);
@@ -825,8 +827,7 @@ td.paid { color: var(--ink-soft); }
           "<div>" + esc(b.name) + ' <span class="' + (i.late ? "late" : "bill-meta") + '">' + (i.late ? "overdue, was due " : "due ") + fmt(i.due) +
           (function () { var pi = payInfo(b.pay); return pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : ""; })() + "</span></div>" +
           '<span class="amt">' + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + "</span></li>";
-      }).join("") + "</ul>" + paydaySplit(r.items) : "") +
-      '<div class="pd-set">Paid on day <input id="pdDay" type="number" min="1" max="31" inputmode="numeric" value="' + state.payday + '" aria-label="Payday, day of month"> of each month <button class="small-btn" id="pdSave">Update</button></div>';
+      }).join("") + "</ul>" + paydaySplit(r.items) : "");
     return true;
   }
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
@@ -923,18 +924,17 @@ td.paid { color: var(--ink-soft); }
 
     // Hero: always measured against your monthly budgets, so it doesn't jump when income arrives
     var left = totalBudget - spent;
-    $("heroCaption").textContent = totalBudget > 0 ? "Left in this month's budgets" : "Spent this month · set budgets below to see what's left";
+    $("heroCaption").textContent = totalBudget > 0 ? "Left of your " + money(totalBudget) + " monthly budget" : "Spent this month · set budgets below to see what's left";
     $("left").textContent = totalBudget > 0 ? money(left) : money(spent);
     $("left").classList.toggle("neg", totalBudget > 0 && left < 0);
 
     $("heroFigs").innerHTML =
       "<span>Income <b>" + money(income) + "</b></span>" +
       "<span>Spent <b>" + money(spent) + "</b></span>" +
-      (totalBudget > 0 ? "<span>Budgeted <b>" + money(totalBudget) + "</b></span>" : "") +
       (income > 0 ? "<span>Income left <b" + (income - spent < 0 ? ' style="color:var(--over)"' : "") + ">" + money(income - spent) + "</b></span>" : "") +
       (state.payday && state.bills.length && ymOf(new Date()) === monthKey() && dueBeforePayday().total > 0
         ? "<span>Bills before payday <b>" + money(dueBeforePayday().total) + "</b></span>" : "") +
-      (phpSpent > 0 ? "<span>Spent in pesos <b>" + peso(phpSpent) + "</b> (" + money(phpSpentGbp) + ")</span>" : "");
+      (phpSpent > 0 ? "<span>Spent in pesos <b>" + peso(phpSpent) + "</b><small>" + money(phpSpentGbp) + "</small></span>" : "");
 
     // Category select
     var sel = $("cat"), prev = sel.value;
@@ -1011,7 +1011,7 @@ td.paid { color: var(--ink-soft); }
             '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit transaction">Edit</button></td></tr>';
         }).join("") + "</tbody></table>";
     }
-    renderLoansPanel();
+    renderLoansPanel(); renderPaydayBar();
     updateSums(txs, spent, totalBudget);
   }
 
@@ -1072,11 +1072,6 @@ td.paid { color: var(--ink-soft); }
   });
   document.addEventListener("click", function (e) {
     var t = e.target.closest("button"); if (!t) return;
-    if (t.id === "pdSave") {
-      var pv = parseInt($("pdDay").value, 10);
-      if (!(pv >= 1 && pv <= 31)) { toast("Payday must be a day from 1 to 31"); $("pdDay").focus(); return; }
-      state.payday = pv; save(); render(); $("pPayday").value = pv; toast("Payday saved for " + currentProfile().name); return;
-    }
     if (t.dataset.paycard) {
       var card = cardById(t.dataset.paycard), inp = $("payamt-" + card.id), v = parseFloat(inp.value);
       if (!(v > 0)) { toast("Enter the payment amount"); inp.focus(); return; }
@@ -1173,6 +1168,8 @@ td.paid { color: var(--ink-soft); }
   };
   function plainBackup(fname) { download(fname, JSON.stringify(state, null, 2), "application/json"); }
   $("restoreBtn").onclick = function () { $("restoreFile").click(); };
+  $("footBackup").onclick = function () { $("backup").click(); };
+  $("footRestore").onclick = function () { $("restoreFile").click(); };
   $("restoreFile").onchange = function () {
     var f = this.files[0]; if (!f) return;
     var r = new FileReader();
@@ -1256,7 +1253,7 @@ td.paid { color: var(--ink-soft); }
     $("sFigs").innerHTML =
       "<span>Income <b>" + money(income) + "</b></span>" +
       "<span>Spent <b>" + money(spent) + "</b></span>" +
-      (active ? "<span>Average spend <b>" + money(spent / active) + "</b> a month</span>" : "") +
+      (active ? "<span>Average spend a month <b>" + money(spent / active) + "</b></span>" : "") +
       (income > 0 ? "<span>Savings rate <b>" + Math.round(net / income * 100) + "%</b></span>" : "");
 
     // Bar chart
@@ -1519,6 +1516,7 @@ td.paid { color: var(--ink-soft); }
     $("monthView").hidden = sum; $("summaryView").hidden = !sum;
     $("tabMonth").setAttribute("aria-selected", sum ? "false" : "true");
     $("tabSummary").setAttribute("aria-selected", sum ? "true" : "false");
+    $("exportCsv").hidden = sum; $("exportYear").hidden = !sum;
     if (sum) { sYear = view.y; renderSummary(); } else render();
     window.scrollTo(0, 0);
   }
@@ -1571,7 +1569,7 @@ td.paid { color: var(--ink-soft); }
   function updateSums(txs, spent, totalBudget) {
     $("sum-budgets").textContent = totalBudget > 0
       ? (totalBudget - spent >= 0 ? money(totalBudget - spent) + " left" : money(spent - totalBudget) + " over")
-      : state.categories.length + " categories";
+      : state.categories.length + (state.categories.length === 1 ? " category" : " categories");
     var bs = "";
     if (state.bills.length) {
       var ym = monthKey(), paid = state.bills.filter(function (b) { return billPayment(b, ym); }).length;
@@ -1962,6 +1960,36 @@ td.paid { color: var(--ink-soft); }
     toast(cp.name + " deleted");
   };
 
+  // ---------- Payday (one place, at the top) ----------
+  function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function renderPaydayBar() {
+    if (!state.payday) {
+      $("paydayText").innerHTML = "No payday set";
+      $("paydayBtn").textContent = "Set payday";
+      return;
+    }
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var pd = nextPayday(t0), days = Math.round((pd - t0) / 86400000);
+    $("paydayText").innerHTML = "Payday <b>" + ordinal(state.payday) + "</b> · " + (days === 1 ? "tomorrow" : "in " + days + " days");
+    $("paydayText").title = "Paid on the " + ordinal(state.payday) + " of each month";
+    $("paydayBtn").textContent = "Change";
+  }
+  $("paydayBtn").onclick = function () {
+    openEditor({
+      title: "Payday for " + currentProfile().name,
+      fields: [
+        { key: "day", label: "Day of the month you get paid (1–31)", type: "number", step: "1", value: state.payday || "", full: true },
+        { key: "n", label: "Used to list the bills due before your next payday. If a month is shorter, the last day of the month is used.", type: "note" }
+      ],
+      onSave: function (v) {
+        var d = Math.round(v.day);
+        if (!(d >= 1 && d <= 31)) return "Enter a day from 1 to 31.";
+        state.payday = d;
+      },
+      savedMsg: "Payday saved"
+    });
+  };
+
   // ---------- Profiles ----------
   var P_COLORS = ["#2F6B4F", "#8E4D6E", "#3C6E91", "#B0613A", "#6A5ACD", "#3F8C8C", "#9C6B3E"];
   function currentProfile() { return profiles.list.find(function (p) { return p.id === profiles.current; }); }
@@ -1977,9 +2005,7 @@ td.paid { color: var(--ink-soft); }
     }).join("");
     $("pDelete").hidden = profiles.list.length < 2;
     $("pActions").hidden = !!cp.locked;
-    $("pPayName").textContent = cp.name;
     $("pBackupInfo").textContent = state.lastBackup ? "Last backup " + agoText(state.lastBackup) : "Not backed up yet";
-    $("pPayday").value = state.payday || "";
     document.title = "Budget · " + cp.name;
   }
   function switchProfile(id) {
@@ -2010,13 +2036,6 @@ td.paid { color: var(--ink-soft); }
     switchProfile(id);
   };
   $("pNew").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pAdd").click(); });
-  $("pPaySave").onclick = function () {
-    var v = parseInt($("pPayday").value, 10);
-    if (!(v >= 1 && v <= 31)) { toast("Payday must be a day from 1 to 31"); $("pPayday").focus(); return; }
-    state.payday = v; save(); render(); $("profileMenu").open = false;
-    toast("Payday saved for " + currentProfile().name);
-  };
-  $("pPayday").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pPaySave").click(); });
   $("pRename").onclick = function () {
     var cp = currentProfile(), n = prompt("New name for this profile", cp.name);
     if (n && n.trim()) { cp.name = n.trim().slice(0, 24); saveProfiles(); renderProfiles(); }
