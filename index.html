@@ -917,11 +917,39 @@ td.paid { color: var(--ink-soft); }
   function termUsed(l, m) { return planPurchases(l).filter(function (t) { return (t.plan.months || 0) === m; }).reduce(function (s2, t) { return s2 + planInfo(l, t).remaining; }, 0); }
   function planLoanFor(b) { var bl = state.loans.find(function (l) { return l.billId === b.id && l.kind === "bnpl"; }); return bl && planPurchases(bl).length ? bl : null; }
   // What's due on a particular due date: plan-driven bills work it out for that month
-  function billDue(b, key) {
+  function baseDue(b, key) {
     var pl = planLoanFor(b);
     if (pl) return Math.round(planDueIn(pl, key.slice(0, 7)) * 100) / 100;
     return billEst(b);
   }
+  function anyLoanFor(b) { return state.loans.find(function (l) { return l.billId === b.id; }) || null; }
+  // For a bill that repays a loan: walk the unpaid due dates in order and stop once the balance would be cleared
+  function loanProjection(b) {
+    var l = anyLoanFor(b); if (!l) return null;
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var from = new Date(t0.getFullYear(), t0.getMonth(), 1), to = new Date(t0.getFullYear() + 3, t0.getMonth(), 1);
+    var left = loanState(l).balance, r = (l.apr || 0) / 1200, map = {};
+    Object.defineProperty(map, "_dates", { value: {}, enumerable: false });
+    occurrences(b, from, to).forEach(function (o) {
+      map._dates[o.key] = o.date;
+      if (occPayment(b, o.key)) return;
+      var want = baseDue(b, o.key);
+      if (!(want > 0)) want = left;               // varies with no history: assume it clears what's left
+      left += left * r * (FREQ_DAYS[freqOf(b)] ? FREQ_DAYS[freqOf(b)] / 30.4 : 1);
+      var amt = Math.max(0, Math.min(want, left));
+      map[o.key] = Math.round(amt * 100) / 100;
+      left = Math.max(0, left - amt);
+    });
+    Object.defineProperty(map, "_left", { value: left, enumerable: false });
+    return map;
+  }
+  function billDue(b, key) {
+    var pj = loanProjection(b);
+    if (pj && pj[key] != null) return pj[key];
+    return baseDue(b, key);
+  }
+  // Nothing to pay on this date: the plans have nothing due, or the loan will already be cleared
+  function nothingDue(b, key) { return (!!planLoanFor(b) || !!anyLoanFor(b)) && !(billDue(b, key) > 0); }
   function billEst(b) {
     var bl = state.loans.find(function (l) { return l.billId === b.id && l.kind === "bnpl"; });
     if (bl && planPurchases(bl).length) { var due = planDueIn(bl, ymOf(new Date())) || planDueIn(bl, nextYm(ymOf(new Date()))); if (due > 0) return Math.round(due * 100) / 100; }
@@ -1004,7 +1032,7 @@ td.paid { color: var(--ink-soft); }
       if (billFinished(b)) return;
       occurrences(b, monthStart, pd).forEach(function (o) {
         if (occPayment(b, o.key)) return;
-        if (planLoanFor(b) && !(billDue(b, o.key) > 0)) return;
+        if (nothingDue(b, o.key)) return;
         items.push({ bill: b, key: o.key, due: o.date, late: o.date < t0 });
       });
     });
@@ -1039,13 +1067,13 @@ td.paid { color: var(--ink-soft); }
     box.innerHTML = '<div class="pd-head"><div><div class="pd-title">' +
       (r.items.length ? "Due before payday" : "All bills covered until payday") + "</div>" +
       '<div class="pd-sub">Payday ' + pdLabel + " · " + (days === 1 ? "tomorrow" : "in " + days + " days") + "</div></div>" +
-      (r.items.length ? '<div class="pd-total">' + money(r.total) + (r.items.some(function (i) { return isVar(i.bill) && !(billEst(i.bill) > 0); }) ? '<small style="display:block;font-size:12px;font-weight:400;color:var(--ink-soft)">+ bills that vary</small>' : "") + "</div>" : "") + "</div>" +
+      (r.items.length ? '<div class="pd-total">' + money(r.total) + (r.items.some(function (i) { return !(billDue(i.bill, i.key) > 0); }) ? '<small style="display:block;font-size:12px;font-weight:400;color:var(--ink-soft)">+ bills that vary</small>' : "") + "</div>" : "") + "</div>" +
       (r.items.length ? '<ul class="pd-list">' + r.items.map(function (i) {
         var b = i.bill;
         return '<li><input type="checkbox" class="bill-check" data-pdpay="' + b.id + '" data-occ="' + i.key + '" aria-label="Mark ' + esc(b.name) + ' as paid">' +
           "<div>" + esc(b.name) + ' <span class="' + (i.late ? "late" : "bill-meta") + '">' + (i.late ? "overdue, was due " : "due ") + fmt(i.due) +
           (function () { var pi = payInfo(b.pay); return pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : ""; })() + "</span></div>" +
-          '<span class="amt">' + (planLoanFor(b) ? "≈ " + (b.cur === "PHP" ? peso(billDue(b, i.key)) : money(billDue(b, i.key))) : billAmtText(b)) + "</span></li>";
+          '<span class="amt">' + (planLoanFor(b) || anyLoanFor(b) ? (isVar(b) || planLoanFor(b) || billDue(b, i.key) < b.amount ? "≈ " : "") + (b.cur === "PHP" ? peso(billDue(b, i.key)) : money(billDue(b, i.key))) : billAmtText(b)) + "</span></li>";
       }).join("") + "</ul>" + paydaySplit(r.items) : "");
     return true;
   }
@@ -1079,10 +1107,10 @@ td.paid { color: var(--ink-soft); }
     $("bills").innerHTML = rows.map(function (r) {
       var b = r.b, o = r.o, p = occPayment(b, o.key), diff = Math.round((o.date - t0) / 86400000);
       var status, cls;
-      var planZero = !p && planLoanFor(b) && !(billDue(b, o.key) > 0);
+      var planZero = !p && nothingDue(b, o.key);
       if (p) { status = "Paid"; cls = "paid"; paidN++; }
       else if (billFinished(b)) { status = "Loan paid off"; cls = "paid"; paidN++; }
-      else if (planZero) { status = "Nothing due"; cls = "paid"; paidN++; }
+      else if (planZero) { status = planLoanFor(b) ? "Nothing due" : "Nothing left to pay"; cls = "paid"; paidN++; }
       else {
         owing += billGbp(b, billDue(b, o.key));
         if (diff < 0) { status = "Overdue"; cls = "late"; }
@@ -1094,7 +1122,7 @@ td.paid { color: var(--ink-soft); }
       var meta = "Due " + o.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
         (pi.kind === "bank" ? " · " + esc(pi.name) : pi.kind === "card" ? " · " + esc(pi.name) + (pi.bnpl ? " BNPL" : " card") : pi.kind === "gone" ? " · removed account" : "") +
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
-      var est = billDue(b, o.key), shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : (est > 0 ? est : (isVar(b) ? null : b.amount)), idk = b.id + "_" + o.key;
+      var est = billDue(b, o.key), shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : (est > 0 ? est : (isVar(b) || nothingDue(b, o.key) ? null : b.amount)), idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
         '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '" data-occ="' + o.key + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + " due " + o.date.toLocaleDateString() + ' as paid">' +
         '<div><div class="bill-name">' + esc(b.name) + '</div><div class="bill-meta">' + meta + "</div></div>" +
@@ -1805,7 +1833,21 @@ td.paid { color: var(--ink-soft); }
       if (l.billId) linked[l.billId] = true;
       var bill = l.billId ? billById(l.billId) : null;
       var shared = bill ? state.loans.filter(function (x) { return x !== l && x.billId === l.billId; }) : [];
+      var sched = null;
+      if (bill && st.balance > 0) {
+        var pj = loanProjection(bill);
+        if (pj && pj._left <= 0.005) {
+          var keys = Object.keys(pj).filter(function (k) { return pj[k] > 0; }).sort();
+          if (keys.length) sched = { n: keys.length, last: pj._dates[keys[keys.length - 1]] };
+        }
+      }
+      if (sched) {
+        var lastTxt = sched.last.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+        var payoffS = (sched.n === 1 ? "With the next payment" : "Last payment " + lastTxt) +
+          "<small>" + sched.n + (sched.n === 1 ? " payment" : " payments") + " left" + (sched.n === 1 ? " · " + lastTxt : "") + "</small>";
+      }
       var payoff = st.balance <= 0 ? '<span style="color:var(--good)">Paid off</span>'
+        : sched ? payoffS
         : st.never ? '<span class="warn">Payment doesn\'t cover the interest</span>'
         : st.payoff ? "Around " + st.payoff.toLocaleDateString(undefined, { month: "short", year: "numeric" }) + "<small>" + (function () {
           var n = st.months;
@@ -1816,7 +1858,7 @@ td.paid { color: var(--ink-soft); }
       var t0 = new Date(), nxt = null; t0.setHours(0, 0, 0, 0);
       if (bill && st.balance > 0) {
         var occ = occurrences(bill, new Date(t0.getFullYear(), t0.getMonth(), 1), new Date(t0.getFullYear() + 1, t0.getMonth(), 1));
-        nxt = occ.find(function (o) { return !occPayment(bill, o.key) && !(planLoanFor(bill) && !(billDue(bill, o.key) > 0)); }) || null;
+        nxt = occ.find(function (o) { return !occPayment(bill, o.key) && !nothingDue(bill, o.key); }) || null;
       }
       var payCell = bill
         ? billAmtText(bill) + "<small>" + freqLabel(bill).toLowerCase() + "</small>" +
@@ -2268,7 +2310,8 @@ td.paid { color: var(--ink-soft); }
     items.forEach(function (i) {
       var pi = payInfo(i.bill.pay), k = pi.kind === "gone" ? "cash" : (i.bill.pay || "cash");
       if (!groups[k]) { groups[k] = { pi: pi.kind === "gone" ? payInfo("cash") : pi, gbp: 0, php: 0 }; order.push(k); }
-      if (i.bill.cur === "PHP") groups[k].php += billEst(i.bill); else groups[k].gbp += billEst(i.bill);
+      var dv = billDue(i.bill, i.key) || 0;
+      if (i.bill.cur === "PHP") groups[k].php += dv; else groups[k].gbp += dv;
     });
     return '<div class="pd-split"><span>Needed in each account:</span>' + order.map(function (k) {
       var g = groups[k], amt = [g.gbp ? money(g.gbp) : "", g.php ? peso(g.php) : ""].filter(Boolean).join(" + ") || "varies";
@@ -2595,7 +2638,7 @@ td.paid { color: var(--ink-soft); }
     var bills = [];
     state.bills.forEach(function (b) {
       if (billFinished(b)) return;
-      occurrences(b, from, to).forEach(function (o) { if (!occPayment(b, o.key) && !(planLoanFor(b) && !(billDue(b, o.key) > 0))) bills.push({ b: b, o: o }); });
+      occurrences(b, from, to).forEach(function (o) { if (!occPayment(b, o.key) && !nothingDue(b, o.key)) bills.push({ b: b, o: o }); });
     });
     bills.sort(function (a, c) { return a.o.date - c.o.date; });
     return { bills: bills, loans: state.loans.filter(function (l) { return loanState(l).balance > 0; }), cards: state.cards };
@@ -2604,7 +2647,7 @@ td.paid { color: var(--ink-soft); }
     var sel = $("link"), prev = sel.value, T = linkTargets(), fmt = function (d) { return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
     var h = '<option value="">Everyday spending (not a bill or card)</option>';
     if (T.bills.length) h += '<optgroup label="Bills not paid yet">' + T.bills.map(function (x) {
-      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + (planLoanFor(x.b) ? "≈ " + money(billDue(x.b, x.o.key)) : billAmtText(x.b)) + "</option>"; }).join("") + "</optgroup>";
+      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + (planLoanFor(x.b) || anyLoanFor(x.b) ? "≈ " + money(billDue(x.b, x.o.key)) : billAmtText(x.b)) + "</option>"; }).join("") + "</optgroup>";
     if (T.cards.length) h += '<optgroup label="Paying off a credit card">' + T.cards.map(function (c) {
       return '<option value="card:' + c.id + '">' + esc(c.name) + " · " + cm(c, cardStats(c, "").balance) + " owed</option>"; }).join("") + "</optgroup>";
     sel.innerHTML = h;
