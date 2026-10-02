@@ -1375,7 +1375,8 @@ td.paid { color: var(--ink-soft); }
   $("backup").onclick = function () {
     var cp = currentProfile();
     state.lastBackup = Date.now(); save(); renderBackupNag(); renderProfiles();
-    var fname = "budget-backup-" + cp.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-" + today() + ".json";
+    var nd = new Date(), stamp = today() + "_" + pad(nd.getHours()) + "-" + pad(nd.getMinutes()) + "-" + pad(nd.getSeconds());
+    var fname = "budget-backup-" + cp.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-" + stamp + ".json";
     plainBackup(fname);
   };
   function plainBackup(fname) { download(fname, JSON.stringify(state, null, 2), "application/json"); }
