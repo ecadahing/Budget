@@ -1588,6 +1588,8 @@ td.paid { color: var(--ink-soft); }
   function loanMoney(l, n) { return l.cur === "PHP" ? peso(n) : money(n); }
   function loanToGbp(l, n) { return l.cur === "PHP" ? (state.rate ? n * state.rate.value : 0) : n; }
   // Balance today: the balance you entered, reduced by each ticked payment of the linked bill since then (allowing for interest)
+  function loanBill(l) { return l.billId ? billById(l.billId) : null; }
+  function loanPayment(l) { var b = loanBill(l); return b ? perMonth(b) : (l.payment || 0); }
   function loanState(l) {
     var bal = l.balance || 0, r = (l.apr || 0) / 1200, paidCount = 0;
     state.tx.filter(function (t) {
@@ -1601,7 +1603,7 @@ td.paid { color: var(--ink-soft); }
       bal = Math.max(0, bal + interest - amt); paidCount++;
     });
     bal = Math.round(bal * 100) / 100;
-    var P = l.payment || 0, months = null, never = false;
+    var P = loanPayment(l), months = null, never = false;
     if (bal > 0 && P > 0) {
       if (r === 0) months = Math.ceil(bal / P);
       else if (P <= bal * r) never = true;
@@ -1612,11 +1614,12 @@ td.paid { color: var(--ink-soft); }
     return { balance: bal, monthlyInterest: Math.round(bal * r * 100) / 100, months: months, never: never, payoff: payoff, applied: paidCount };
   }
   function editLoan(id, prefill) {
+    var forceNew = prefill && prefill.newBill && id;
     var isNew = !id, l = isNew ? Object.assign({ kind: "personal", cur: "GBP", balance: 0, payment: 0, apr: 0, billId: "", exclude: false }, prefill || {})
       : state.loans.find(function (x) { return x.id === id; });
     if (!l) return;
     var now = isNew ? 0 : loanState(l).balance;
-    var billOpts = [["", "Not linked to a bill"]].concat(state.bills.map(function (b) {
+    var billOpts = [["__new", "Create a monthly bill for it"], ["", "Don't add it to Bills"]].concat(state.bills.map(function (b) {
       var other = state.loans.find(function (x) { return x.billId === b.id && x !== l; });
       return [b.id, b.name + " (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + ", " + freqLabel(b).toLowerCase() + ")" + (other ? " · linked to " + other.name : "")];
     }));
@@ -1627,22 +1630,31 @@ td.paid { color: var(--ink-soft); }
         { key: "kind", label: "Type", type: "select", value: l.kind, options: LOAN_KINDS },
         { key: "cur", label: "Currency", type: "select", value: l.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
         { key: "bal", label: "Balance owed today", type: "number", value: isNew ? "" : now.toFixed(2) },
-        { key: "pay", label: "Monthly payment", type: "number", value: l.payment || "" },
+        { key: "pay", label: "Monthly payment", type: "number", value: (loanBill(l) && freqOf(loanBill(l)) === "monthly" ? loanBill(l).amount : l.payment) || "" },
         { key: "apr", label: "Interest rate (APR %, optional)", type: "number", step: "0.01", value: l.apr || "", full: true },
-        { key: "bill", label: "Paid by this bill", type: "select", value: l.billId || "", options: billOpts, full: true },
+        { key: "bill", label: "Monthly payment in Bills", type: "select", value: forceNew ? "__new" : (l.billId || (isNew && !l.billId ? "__new" : "")), options: billOpts, full: true },
+        { key: "due", label: "Payment due day each month", type: "number", step: "1", value: l.dueDay || "", showIf: function (v) { return v.bill === "__new"; } },
+        { key: "bpay", label: "Paid from", type: "select", value: l.payWith && validPay(l.payWith) ? l.payWith : "cash", options: payOptions(), showIf: function (v) { return v.bill === "__new"; } },
+        { key: "bcat", label: "Category", type: "select", value: l.category && catById(l.category) ? l.category : (state.categories[0] ? state.categories[0].id : ""), options: catOptions(), full: true, showIf: function (v) { return v.bill === "__new"; } },
         { key: "excl", label: "Leave out of debt-to-income (e.g. UK student loan taken from salary)", type: "checkbox", value: !!l.exclude },
-        { key: "n", label: "When linked, ticking that bill as paid lowers the balance automatically. If the balance ever drifts from your statement, just type the right figure here.", type: "note" }
+        { key: "n", label: "You pay it in Bills: ticking its bill lowers this balance automatically. For amounts that vary (like BNPL), change the amount next to the bill before ticking it. If the balance drifts from your statement, type the right figure here.", type: "note" }
       ],
       onSave: function (v) {
         if (!v.name.trim()) return "Give it a name, e.g. Car finance.";
         if (!(v.bal >= 0)) return "Enter the balance you owe today.";
-        if (v.bill && state.loans.some(function (x) { return x.billId === v.bill && x !== l; })) return "That bill is already linked to another loan.";
+        if (v.bill && v.bill !== "__new" && state.loans.some(function (x) { return x.billId === v.bill && x !== l; })) return "That bill is already linked to another loan.";
+        if (v.bill === "__new") {
+          if (!(v.pay > 0)) return "Enter the monthly payment, so its bill knows how much to show. For varying amounts use a typical one.";
+          var dd = Math.round(v.due); if (!(dd >= 1 && dd <= 31)) return "Enter the day of the month the payment is due (1–31).";
+          var nb = { id: uid(), name: v.name.trim(), amount: r2(v.pay), cur: v.cur, freq: "monthly", due: dd, category: v.bcat, pay: v.bpay };
+          state.bills.push(nb); v.bill = nb.id; l.dueDay = dd; l.payWith = v.bpay; l.category = v.bcat;
+        }
         l.name = v.name.trim(); l.kind = v.kind; l.payment = Math.max(0, v.pay || 0); l.apr = Math.max(0, v.apr || 0); l.exclude = v.excl;
         var curChanged = l.cur !== v.cur; l.cur = v.cur;
         var billChanged = (l.billId || "") !== v.bill; l.billId = v.bill;
         if (isNew || curChanged || billChanged || Math.abs(v.bal - now) >= 0.005) { l.balance = Math.round(v.bal * 100) / 100; l.asOf = Date.now(); }
         if (isNew) { l.id = uid(); state.loans.push(l); }
-        var lb = l.billId && billById(l.billId); if (lb) lb.debt = false;
+        var lb = l.billId && billById(l.billId); if (lb) { lb.debt = false; if (v.pay > 0 && freqOf(lb) === "monthly") lb.amount = r2(v.pay); }
       },
       onDelete: isNew ? null : function () { state.loans = state.loans.filter(function (x) { return x !== l; }); },
       deleteLabel: "Remove", confirmDelete: isNew ? null : 'Remove "' + (l.name || "this debt") + '"? Its bill and payments stay as they are.',
@@ -1654,7 +1666,7 @@ td.paid { color: var(--ink-soft); }
   function loanSummary(editable) {
     var out = { owed: 0, pay: 0, payDti: 0, interest: 0, rows: "", legacy: "", legacyTotal: 0 }, linked = {};
     out.rows = state.loans.map(function (l) {
-      var st = loanState(l), gbpBal = loanToGbp(l, st.balance), gbpPay = loanToGbp(l, l.payment || 0);
+      var st = loanState(l), gbpBal = loanToGbp(l, st.balance), lp = loanPayment(l), gbpPay = loanToGbp(l, lp);
       out.owed += gbpBal; out.interest += loanToGbp(l, st.monthlyInterest);
       if (st.balance > 0) { out.pay += gbpPay; if (!l.exclude) out.payDti += gbpPay; }
       if (l.billId) linked[l.billId] = true;
@@ -1663,13 +1675,22 @@ td.paid { color: var(--ink-soft); }
         : st.never ? '<span class="warn">Payment doesn\'t cover the interest</span>'
         : st.payoff ? "Around " + st.payoff.toLocaleDateString(undefined, { month: "short", year: "numeric" }) + "<small>" + st.months + (st.months === 1 ? " payment" : " payments") + " left</small>"
         : "<small>Add a monthly payment to estimate</small>";
+      var t0 = new Date(), nxt = null; t0.setHours(0, 0, 0, 0);
+      if (bill && st.balance > 0) {
+        var occ = occurrences(bill, new Date(t0.getFullYear(), t0.getMonth(), 1), new Date(t0.getFullYear() + 1, t0.getMonth(), 1));
+        nxt = occ.find(function (o) { return !occPayment(bill, o.key); }) || null;
+      }
+      var payCell = bill
+        ? (bill.cur === "PHP" ? peso(bill.amount) : money(bill.amount)) + "<small>" + freqLabel(bill).toLowerCase() + "</small>" +
+          (nxt ? "<small" + (nxt.date < t0 ? ' class="warn"' : "") + ">" + (nxt.date < t0 ? "overdue since " : "next due ") + nxt.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + "</small>" : "")
+        : (l.payment ? loanMoney(l, l.payment) + "<small>a month</small>" : "–") +
+          (editable && st.balance > 0 ? '<small><button class="small-btn" data-loanbill="' + l.id + '" style="margin-top:4px">Add to Bills</button></small>' : "");
       return '<div class="loan-row' + (editable ? "" : " ro") + '"><div><b>' + esc(l.name) + "</b><small>" + kindLabel(l.kind) + (l.apr ? " · " + l.apr + "% APR" : "") +
-        (bill ? " · paid by " + esc(bill.name) : "") + (l.exclude ? " · not in ratio" : "") + "</small></div>" +
+        (bill ? " · paid through Bills" : editable ? " · not in Bills yet" : "") + (l.exclude ? " · not in ratio" : "") + "</small></div>" +
         '<div class="num"><b>' + loanMoney(l, st.balance) + "</b>" + (l.cur === "PHP" && state.rate ? "<small>≈ " + money(gbpBal) + "</small>" : "") + "</div>" +
-        '<div class="num">' + (l.payment ? loanMoney(l, l.payment) + "<small>a month</small>" : "–") + "</div>" +
+        '<div class="num">' + payCell + "</div>" +
         '<div class="num">' + payoff + (st.monthlyInterest > 0 ? "<small>~" + loanMoney(l, st.monthlyInterest) + " interest/month</small>" : "") + "</div>" +
-        (editable ? '<div class="loan-acts">' + (st.balance > 0 ? '<button class="small-btn" data-startpay="loan:' + l.id + '">Pay</button>' : "") +
-          '<button class="edit-btn" data-editloan="' + l.id + '" aria-label="Edit ' + esc(l.name) + '">Edit</button></div>' : "") + "</div>";
+        (editable ? '<div class="loan-acts"><button class="edit-btn" data-editloan="' + l.id + '" aria-label="Edit ' + esc(l.name) + '">Edit</button></div>' : "") + "</div>";
     }).join("");
     // Bills marked as debt in an older version, not yet set up as a loan
     state.bills.forEach(function (b) {
@@ -1680,13 +1701,13 @@ td.paid { color: var(--ink-soft); }
         '<button class="small-btn" data-loanfrom="' + b.id + '">Add as a loan</button>' +
         '<button class="small-btn" data-undebt="' + b.id + '">Not a debt</button></div>';
     });
-    out.head = '<div class="loan-row head' + (editable ? "" : " ro") + '"><span>Debt</span><span class="num">Owed today</span><span class="num">Payment</span><span class="num">Paid off</span>' + (editable ? "<span></span>" : "") + "</div>";
+    out.head = '<div class="loan-row head' + (editable ? "" : " ro") + '"><span>Debt</span><span class="num">Owed today</span><span class="num">Payment</span><span class="num">Paid off by</span>' + (editable ? "<span></span>" : "") + "</div>";
     return out;
   }
   function renderLoansPanel() {
     var L = loanSummary(true);
     $("loansPanel").innerHTML = L.legacy + (state.loans.length ? L.head + L.rows
-      : '<p class="empty">Add personal loans, car finance, buy now pay later, or money owed to family. Record payments in Add a transaction under Payment for, or link a loan to its bill, and the balance goes down.</p>') +
+      : '<p class="empty">Add personal loans, car finance, buy now pay later, or money owed to family. Each one gets a monthly bill, and ticking that bill as paid lowers what you owe.</p>') +
       '<button class="ghost" id="addLoan" style="margin-top:12px">Add a loan or debt</button>';
     $("sum-loans").textContent = state.loans.length ? money(L.owed) + " owed" : "";
   }
@@ -2123,6 +2144,7 @@ td.paid { color: var(--ink-soft); }
   document.addEventListener("click", function (e) {
     var b = e.target.closest("[data-editloan]"); if (b) { editLoan(b.dataset.editloan); return; }
     if (e.target.closest("#addLoan")) { editLoan(null); return; }
+    var lbb = e.target.closest("[data-loanbill]"); if (lbb) { editLoan(lbb.dataset.loanbill, { newBill: true }); return; }
     var lf = e.target.closest("[data-loanfrom]");
     if (lf) { var bb = billById(lf.dataset.loanfrom); if (bb) editLoan(null, { name: bb.name, cur: bb.cur, payment: bb.amount, billId: bb.id, kind: "personal" }); return; }
     var ud = e.target.closest("[data-undebt]");
@@ -2416,11 +2438,9 @@ td.paid { color: var(--ink-soft); }
   }
   function renderLinkOptions() {
     var sel = $("link"), prev = sel.value, T = linkTargets(), fmt = function (d) { return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
-    var h = '<option value="">Everyday spending (not a bill, loan or card)</option>';
+    var h = '<option value="">Everyday spending (not a bill or card)</option>';
     if (T.bills.length) h += '<optgroup label="Bills not paid yet">' + T.bills.map(function (x) {
       return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + (x.b.cur === "PHP" ? peso(x.b.amount) : money(x.b.amount)) + "</option>"; }).join("") + "</optgroup>";
-    if (T.loans.length) h += '<optgroup label="Loans and debts">' + T.loans.map(function (l) {
-      return '<option value="loan:' + l.id + '">' + esc(l.name) + " · " + loanMoney(l, loanState(l).balance) + " owed</option>"; }).join("") + "</optgroup>";
     if (T.cards.length) h += '<optgroup label="Paying off a credit card">' + T.cards.map(function (c) {
       return '<option value="card:' + c.id + '">' + esc(c.name) + " · " + cm(c, cardStats(c, "").balance) + " owed</option>"; }).join("") + "</optgroup>";
     sel.innerHTML = h;
