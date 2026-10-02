@@ -1767,10 +1767,13 @@ td.paid { color: var(--ink-soft); }
     openEditor({
       title: isNew ? "Add a loan or debt" : "Edit " + l.name,
       fields: [
+        isNew ? null : { key: "status", label: "Right now: " + loanMoney(l, now) + " owed" +
+          (l.kind === "bnpl" && l.limit > 0 ? " · " + loanMoney(l, Math.max(0, l.limit - now)) + " available of " + loanMoney(l, l.limit) : "") +
+          ". Payments you tick in Bills and purchases made with it update this automatically.", type: "note" },
         { key: "name", label: "Name", type: "text", value: l.name || "", max: 40, full: true },
         { key: "kind", label: "Type", type: "select", value: l.kind, options: LOAN_KINDS },
         { key: "cur", label: "Currency", type: "select", value: l.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
-        { key: "bal", label: "Balance owed today", type: "number", value: isNew ? "" : now.toFixed(2) },
+        { key: "bal", label: isNew ? "Balance owed today" : "Balance owed (change only to correct it)", type: "number", value: isNew ? "" : now.toFixed(2) },
         { key: "pay", label: "Payment each time (leave blank if it varies)", type: "number", value: (loanBill(l) ? loanBill(l).amount : l.payment) || "", full: true },
         { key: "apr", label: "Interest rate (APR %, optional)", type: "number", step: "0.01", value: l.apr || "", full: true },
         { key: "limit", label: "Overall spending limit (optional)", type: "number", step: "1", value: l.limit || "", full: true, showIf: function (v) { return v.kind === "bnpl"; } },
@@ -1782,7 +1785,7 @@ td.paid { color: var(--ink-soft); }
         { key: "nlim", label: "Leave plan limits blank if there's just one overall limit.", type: "note", showIf: function (v) { return v.kind === "bnpl"; } },
         { key: "track", label: "I'll record purchases on it (choose it under Paid with)", type: "checkbox", value: l.trackBuys !== undefined ? !!l.trackBuys : !!l.limit, showIf: function (v) { return v.kind === "bnpl"; } },
         { key: "nb", label: "With this ticked, purchases count as spending when you make them and lower what's available. Its payments then work like paying off a credit card, so they aren't counted as spending twice. Leave it unticked if you only track the repayments.", type: "note", showIf: function (v) { return v.kind === "bnpl"; } },
-        { key: "bill", label: "Monthly payment in Bills", type: "select", value: forceNew ? "__new" : (l.billId || (isNew && !l.billId ? "__new" : "")), options: billOpts, full: true },
+        { key: "bill", label: "Payments in Bills", type: "select", value: forceNew ? "__new" : (l.billId || (isNew && !l.billId ? "__new" : "")), options: billOpts, full: true },
         { key: "bfreq", label: "How often", type: "select", value: "monthly", options: FREQS, full: true, showIf: function (v) { return v.bill === "__new"; } },
         { key: "due", label: "Payment due day each month", type: "number", step: "1", value: l.dueDay || "", showIf: function (v) { return v.bill === "__new" && v.bfreq === "monthly"; } },
         { key: "bstart", label: "Next payment date", type: "date", value: today(), showIf: function (v) { return v.bill === "__new" && v.bfreq !== "monthly"; } },
@@ -1790,7 +1793,7 @@ td.paid { color: var(--ink-soft); }
         { key: "bcat", label: "Category", type: "select", value: l.category && catById(l.category) ? l.category : (state.categories[0] ? state.categories[0].id : ""), options: catOptions(), full: true, showIf: function (v) { return v.bill === "__new"; } },
         { key: "excl", label: "Leave out of debt-to-income (e.g. UK student loan taken from salary)", type: "checkbox", value: !!l.exclude },
         { key: "n", label: "You pay it in Bills: ticking its bill lowers this balance automatically. For amounts that vary (like BNPL), change the amount next to the bill before ticking it. If the balance drifts from your statement, type the right figure here.", type: "note" }
-      ],
+      ].filter(Boolean),
       onSave: function (v) {
         if (!v.name.trim()) return "Give it a name, e.g. Car finance.";
         if (!(v.bal >= 0)) return "Enter the balance you owe today.";
