@@ -139,7 +139,13 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .track i { display: block; height: 100%; border-radius: 3px; }
 .budget-in { width: 90px; background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 3px 6px; font-size: 14px; text-align: right; }
 .env-note { font-size: 13px; color: var(--ink-soft); margin-top: 3px; }
-.add-cat { display: flex; gap: 8px; margin-top: 14px; }
+.subs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.sub-chip, .edit-btn.sub-chip { font-size: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; color: var(--ink-soft); text-decoration: none; }
+.sub-chip b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+button.sub-chip:hover, .edit-btn.sub-chip:hover { border-color: var(--ink-soft); color: var(--ink); text-decoration: none; }
+#newCatParent { background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; flex: 1; min-width: 0; }
+.add-cat { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.add-cat #newCat { flex: 1 1 100%; }
 .add-cat input { flex: 1; background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
 
 /* Transactions */
@@ -483,7 +489,8 @@ td.paid { color: var(--ink-soft); }
       <h2><button class="sec-toggle" aria-expanded="true"><span>Monthly budgets</span><span class="sec-sum" id="sum-budgets"></span><span class="chev" aria-hidden="true">▾</span></button></h2>
       <div id="envelopes"></div>
       <div class="add-cat">
-        <input id="newCat" type="text" placeholder="New category" maxlength="30" aria-label="New category name">
+        <input id="newCat" type="text" placeholder="New category or subcategory" maxlength="30" aria-label="New category name">
+        <select id="newCatParent" aria-label="Where to add it"></select>
         <button class="ghost" id="addCat">Add</button>
       </div>
     </section>
@@ -759,6 +766,21 @@ td.paid { color: var(--ink-soft); }
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function catById(id) { return state.categories.find(function (c) { return c.id === id; }); }
+  // Categories can have one level of subcategories (c.parent). Budgets live on the main category.
+  function isSub(c) { return !!(c && c.parent && catById(c.parent)); }
+  function mainCats() { return state.categories.filter(function (c) { return !isSub(c); }); }
+  function subsOf(id) { return state.categories.filter(function (c) { return c.parent === id && catById(id); }); }
+  function mainOf(c) { return isSub(c) ? catById(c.parent) : c; }
+  function catLabel(id) { var c = catById(id); if (!c) return "Removed category"; return isSub(c) ? mainOf(c).name + " › " + c.name : c.name; }
+  function catColor(id) { var c = catById(id); return c ? mainOf(c).color : "#999"; }
+  function catSelectHtml() {
+    return mainCats().map(function (m) {
+      var subs = subsOf(m.id);
+      if (!subs.length) return '<option value="' + m.id + '">' + esc(m.name) + "</option>";
+      return '<optgroup label="' + esc(m.name) + '"><option value="' + m.id + '">' + esc(m.name) + " (general)</option>" +
+        subs.map(function (sc) { return '<option value="' + sc.id + '">' + esc(sc.name) + "</option>"; }).join("") + "</optgroup>";
+    }).join("");
+  }
   function cardById(id) { return state.cards.find(function (c) { return c.id === id; }); }
   function bankById(id) { return state.banks.find(function (b) { return b.id === id; }); }
   function validPay(p) { return p === "cash" || !!cardById(p) || !!bankById(p); }
@@ -937,7 +959,7 @@ td.paid { color: var(--ink-soft); }
   function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 
   function renderBills(ym) {
-    var opts = state.categories.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
+    var opts = catSelectHtml();
     var cprev = $("bCat").value; $("bCat").innerHTML = opts; if (cprev && catById(cprev)) $("bCat").value = cprev;
     var pprev = $("bPay").value;
     $("bPay").innerHTML = payOptionsHtml();
@@ -976,7 +998,7 @@ td.paid { color: var(--ink-soft); }
       var c = catById(b.category), pi = payInfo(b.pay), f = freqOf(b);
       var meta = "Due " + o.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
         (f !== "monthly" ? " · " + freqLabel(b).toLowerCase() + " (≈ " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + "/month)" : "") +
-        (c ? " · " + esc(c.name) : "") + (pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : pi.kind === "gone" ? " · removed account" : "") +
+        (c ? " · " + esc(catLabel(c.id)) : "") + (pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : pi.kind === "gone" ? " · removed account" : "") +
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
       var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : b.amount, idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
@@ -1041,7 +1063,7 @@ td.paid { color: var(--ink-soft); }
       if (t.type === "income") income += t.amount;
       else { spent += t.amount; byCat[t.category] = (byCat[t.category] || 0) + t.amount; }
     });
-    var totalBudget = state.categories.reduce(function (s, c) { return s + (c.budget || 0); }, 0);
+    var totalBudget = mainCats().reduce(function (s, c) { return s + (c.budget || 0); }, 0);
 
     // Hero: always measured against your monthly budgets, so it doesn't jump when income arrives
     var left = totalBudget - spent;
@@ -1059,7 +1081,7 @@ td.paid { color: var(--ink-soft); }
 
     // Category select
     var sel = $("cat"), prev = sel.value;
-    sel.innerHTML = state.categories.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + "</option>"; }).join("");
+    sel.innerHTML = catSelectHtml();
     if (prev && catById(prev)) sel.value = prev;
 
     var psel = $("pay"), pprev = psel.value;
@@ -1091,8 +1113,9 @@ td.paid { color: var(--ink-soft); }
     if (openPay && $("payamt-" + openPay)) $("payamt-" + openPay).focus();
 
     // Envelopes
-    $("envelopes").innerHTML = state.categories.map(function (c) {
-      var s = byCat[c.id] || 0, b = c.budget || 0, over = b > 0 && s > b;
+    $("envelopes").innerHTML = mainCats().map(function (c) {
+      var subs = subsOf(c.id), s = (byCat[c.id] || 0) + subs.reduce(function (t, sc) { return t + (byCat[sc.id] || 0); }, 0);
+      var b = c.budget || 0, over = b > 0 && s > b;
       var pct = b > 0 ? Math.min(100, s / b * 100) : 0;
       var note = b > 0 ? (over ? money(s - b) + " over" : money(b - s) + " left") : "No budget set";
       return '<div class="env">' +
@@ -1103,8 +1126,15 @@ td.paid { color: var(--ink-soft); }
         '<input class="budget-in" type="number" min="0" step="1" inputmode="decimal" value="' + (b || "") + '" placeholder="0" data-budget="' + c.id + '" aria-label="Monthly budget for ' + esc(c.name) + '">' +
         '<button class="edit-btn" data-editcat="' + c.id + '" aria-label="Edit ' + esc(c.name) + '">Edit</button></div>' +
         (b > 0 ? '<div class="track"><i style="width:' + pct + "%;background:" + (over ? "var(--over)" : c.color) + '"></i></div>' : "") +
-        '<div class="env-note">' + note + "</div></div>";
+        '<div class="env-note">' + note + "</div>" +
+        (subs.length ? '<div class="subs">' + subs.map(function (sc) {
+          return '<button class="edit-btn sub-chip" data-editcat="' + sc.id + '" aria-label="Edit ' + esc(sc.name) + '">' + esc(sc.name) + " <b>" + money(byCat[sc.id] || 0) + "</b></button>";
+        }).join("") + (byCat[c.id] ? '<span class="sub-chip plain">General <b>' + money(byCat[c.id]) + "</b></span>" : "") + "</div>" : "") +
+        "</div>";
     }).join("") || '<p class="empty">Add a category to start budgeting.</p>';
+    var pc = $("newCatParent"), pcv = pc.value;
+    pc.innerHTML = '<option value="">As a main category</option>' + mainCats().map(function (m) { return '<option value="' + m.id + '">Under ' + esc(m.name) + "</option>"; }).join("");
+    if (pcv && catById(pcv)) pc.value = pcv;
 
     // Transactions
     $("txTitle").textContent = "Transactions in " + label;
@@ -1118,7 +1148,7 @@ td.paid { color: var(--ink-soft); }
           var cardName = card ? card.name : "Removed card";
           var catCell = t.type === "income" ? "Income"
             : t.type === "cardpay" ? '<span class="cat-tag"><span class="dot" style="background:' + (card ? card.color : "#999") + '"></span>Paid ' + esc(cardName) + "</span>"
-            : '<span class="cat-tag"><span class="dot" style="background:' + (c ? c.color : "#999") + '"></span>' + esc(c ? c.name : "Removed category") + "</span>" +
+            : '<span class="cat-tag"><span class="dot" style="background:' + catColor(t.category) + '"></span>' + esc(catLabel(t.category)) + "</span>" +
               (function () { var pi = payInfo(t.pay); return pi.kind === "cash" ? "" : '<span class="pay-tag">' + (pi.kind === "bank" ? "From " : pi.kind === "card" ? "On " : "") + esc(pi.name) + "</span>"; })();
           var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
           var sign = t.type === "income" ? "+" : t.type === "cardpay" ? "" : "−";
@@ -1215,8 +1245,11 @@ td.paid { color: var(--ink-soft); }
 
   $("addCat").onclick = function () {
     var name = $("newCat").value.trim(); if (!name) return;
-    state.categories.push({ id: uid(), name: name, budget: 0, color: PALETTE[state.categories.length % PALETTE.length] });
-    $("newCat").value = ""; save(); render(); toast("Category added");
+    var parent = $("newCatParent").value;
+    var nc = { id: uid(), name: name, budget: 0, color: PALETTE[mainCats().length % PALETTE.length] };
+    if (parent && catById(parent)) nc.parent = parent;
+    state.categories.push(nc);
+    $("newCat").value = ""; save(); render(); toast(parent ? "Subcategory added under " + catById(parent).name : "Category added");
   };
   $("bFreq").innerHTML = FREQS.map(function (f) { return '<option value="' + f[0] + '">' + f[1] + "</option>"; }).join("");
   $("bFreq").onchange = function () {
@@ -1284,7 +1317,7 @@ td.paid { color: var(--ink-soft); }
     var rows = [["Date", "Type", "Category", "Paid with", "Note", "Original amount", "Currency", "Rate (GBP to PHP)", "Amount (GBP)"]];
     monthTx().sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
       var c = catById(t.category), sign = t.type === "expense" ? -1 : 1, cd = cardById(t.pay || t.card);
-      var catName = t.type === "income" ? "Income" : t.type === "cardpay" ? "Card payment" : (c ? c.name : "Removed category");
+      var catName = t.type === "income" ? "Income" : t.type === "cardpay" ? "Card payment" : catLabel(t.category).replace(" › ", " > ");
       var payName = t.type === "income" ? "" : t.type === "cardpay" ? (cd ? cd.name : "Removed card") : payInfo(t.pay).name;
       rows.push([t.date, t.type === "cardpay" ? "card payment" : t.type, catName, payName, t.note,
         sign * t.orig, t.cur, t.cur === "PHP" ? +(1 / t.rate).toFixed(4) : 1, sign * t.amount]);
@@ -1410,7 +1443,14 @@ td.paid { color: var(--ink-soft); }
     }
 
     // Categories
-    var catRows = Object.keys(d.cats).map(function (id) { return { id: id, v: d.cats[id], c: catById(id) }; })
+    var byMain = {}, subSplit = {};
+    Object.keys(d.cats).forEach(function (id) {
+      var c = catById(id), m = c ? mainOf(c) : null, k = m ? m.id : "_removed";
+      byMain[k] = (byMain[k] || 0) + d.cats[id];
+      if (c && isSub(c)) { subSplit[k] = subSplit[k] || []; subSplit[k].push({ name: c.name, v: d.cats[id] }); }
+      else if (c && subsOf(c.id).length) { subSplit[k] = subSplit[k] || []; subSplit[k].push({ name: "General", v: d.cats[id] }); }
+    });
+    var catRows = Object.keys(byMain).map(function (id) { return { id: id, v: byMain[id], c: catById(id) }; })
       .sort(function (a, b) { return b.v - a.v; });
     $("sCats").innerHTML = catRows.length ? catRows.map(function (r) {
       var name = r.c ? r.c.name : "Removed category", color = r.c ? r.c.color : "#999";
@@ -1423,7 +1463,9 @@ td.paid { color: var(--ink-soft); }
       return '<div class="env"><div class="env-row"><span class="dot" style="background:' + color + '"></span>' +
         '<span class="env-name">' + esc(name) + '</span><span class="env-amt">' + money(r.v) + '</span></div>' +
         '<div class="track"><i style="width:' + pct + '%;background:' + color + '"></i></div>' +
-        '<div class="env-note">' + Math.round(pct) + "% of spending · " + money(r.v / (active || 1)) + " a month" + budgetNote + "</div></div>";
+        '<div class="env-note">' + Math.round(pct) + "% of spending · " + money(r.v / (active || 1)) + " a month" + budgetNote + "</div>" +
+        (subSplit[r.id] ? '<div class="subs">' + subSplit[r.id].sort(function (a, b) { return b.v - a.v; }).map(function (x) {
+          return '<span class="sub-chip plain">' + esc(x.name) + " <b>" + money(x.v) + "</b></span>"; }).join("") + "</div>" : "") + "</div>";
     }).join("") : '<p class="empty">No spending logged this year.</p>';
 
     // Pesos
@@ -1467,7 +1509,8 @@ td.paid { color: var(--ink-soft); }
 
     renderDebt(d);
     $("sum-schart").textContent = active ? active + (active === 1 ? " month" : " months") + " logged" : "";
-    var top = Object.keys(d.cats).sort(function (a, b) { return d.cats[b] - d.cats[a]; })[0];
+    var mt = {}; Object.keys(d.cats).forEach(function (id) { var c = catById(id), k = c ? mainOf(c).id : "_r"; mt[k] = (mt[k] || 0) + d.cats[id]; });
+    var top = Object.keys(mt).sort(function (a, b) { return mt[b] - mt[a]; })[0];
     $("sum-scats").textContent = top ? "Most on " + (catById(top) ? catById(top).name : "removed category") : "";
     $("sum-sphp").textContent = d.php > 0 ? peso(d.php) + " · " + money(d.phpGbp) : "";
     var ow = state.cards.reduce(function (t, c) { return t + cardToGbp(c, cardStats(c, "").balance); }, 0);
@@ -1672,7 +1715,7 @@ td.paid { color: var(--ink-soft); }
       rows.push([sYear + "-" + pad(i + 1), m.income.toFixed(2), m.spent.toFixed(2), (m.income - m.spent).toFixed(2), m.php.toFixed(2), m.phpGbp.toFixed(2)]);
     });
     rows.push([], ["Category", "Spent (GBP)"]);
-    Object.keys(d.cats).forEach(function (id) { var c = catById(id); rows.push([c ? c.name : "Removed category", d.cats[id].toFixed(2)]); });
+    Object.keys(d.cats).forEach(function (id) { rows.push([catLabel(id).replace(" › ", " > "), d.cats[id].toFixed(2)]); });
     download("budget-summary-" + sYear + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
   };
 
@@ -1790,7 +1833,11 @@ td.paid { color: var(--ink-soft); }
     var first = back.querySelector("input, select"); if (first) first.focus();
   }
 
-  function catOptions() { return state.categories.map(function (c) { return [c.id, c.name]; }); }
+  function catOptions() {
+    var out = [];
+    mainCats().forEach(function (m) { out.push([m.id, m.name]); subsOf(m.id).forEach(function (sc) { out.push([sc.id, m.name + " › " + sc.name]); }); });
+    return out;
+  }
   function payOptions() {
     return [["cash", "Cash or debit (no bank set)"]]
       .concat(state.banks.map(function (b) { return [b.id, b.name + (b.cur === "PHP" ? " (PH bank, debit)" : " (debit)")]; }))
@@ -1919,16 +1966,24 @@ td.paid { color: var(--ink-soft); }
     openEditor({
       title: "Edit category",
       fields: [
-        { key: "name", label: "Name", type: "text", value: c.name, max: 30 },
-        { key: "budget", label: "Monthly budget (£)", type: "number", step: "1", value: c.budget || "" }
+        { key: "name", label: "Name", type: "text", value: c.name, max: 30, full: true },
+        { key: "parent", label: "Sits under", type: "select", value: isSub(c) ? c.parent : "",
+          options: [["", "Nothing (main category)"]].concat(mainCats().filter(function (m) { return m !== c; }).map(function (m) { return [m.id, m.name]; })), full: true },
+        { key: "budget", label: "Monthly budget (£)", type: "number", step: "1", value: c.budget || "", full: true, showIf: function (v) { return !v.parent; } },
+        { key: "n", label: "Subcategories count towards their main category's budget.", type: "note", showIf: function (v) { return !!v.parent; } }
       ],
       onSave: function (v) {
         if (!v.name.trim()) return "Give the category a name.";
-        c.name = v.name.trim(); c.budget = Math.max(0, v.budget || 0);
+        if (v.parent && subsOf(c.id).length) return "This category has its own subcategories, so it can't go under another one. Move those first.";
+        c.name = v.name.trim();
+        if (v.parent) { c.parent = v.parent; c.budget = 0; } else { delete c.parent; c.budget = Math.max(0, v.budget || 0); }
       },
-      onDelete: function () { state.categories = state.categories.filter(function (x) { return x !== c; }); },
-      deleteLabel: "Remove category",
-      confirmDelete: 'Remove "' + c.name + '"? Past transactions stay but show as "Removed category".',
+      onDelete: function () {
+        subsOf(c.id).forEach(function (sc) { delete sc.parent; });
+        state.categories = state.categories.filter(function (x) { return x !== c; });
+      },
+      deleteLabel: isSub(c) ? "Remove subcategory" : "Remove category",
+      confirmDelete: 'Remove "' + c.name + '"? Past transactions stay but show as "Removed category".' + (subsOf(c.id).length ? " Its subcategories become main categories." : ""),
       deletedMsg: "Category removed"
     });
   }
