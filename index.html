@@ -297,6 +297,10 @@ tr.carried-out td { opacity: .6; }
 }
 .legacy { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; background: var(--paper); border-left: 4px solid var(--brass); border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; font-size: 14px; }
 .legacy p { margin: 0; flex: 1; min-width: 220px; }
+.bnpl-av { margin-top: 6px; font-size: 14px; max-width: 260px; }
+.bnpl-av small { display: inline; color: var(--ink-soft); }
+.bnpl-av .warn b { color: var(--over); }
+.bnpl-av .mini { margin-top: 4px; }
 .loan-acts { display: flex; align-items: center; gap: 4px; justify-content: flex-end; }
 .debt-sub { font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 17px; margin: 22px 0 10px; }
 .debt-sub:first-child { margin-top: 0; }
@@ -513,7 +517,7 @@ td.paid { color: var(--ink-soft); }
         <summary>Add a bill</summary>
         <div class="bill-form">
           <label>Bill name<input id="bName" type="text" maxlength="40" placeholder="e.g. Electricity"></label>
-          <label>Usual amount<input id="bAmt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></label>
+          <label>Usual amount<input id="bAmt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Blank if it varies"></label>
           <label>Currency<select id="bCur"><option value="GBP">£ GBP</option><option value="PHP">₱ PHP</option></select></label>
           <label>How often<select id="bFreq"></select></label>
           <label id="bDueWrap">Due day each month<input id="bDue" type="number" min="1" max="31" step="1" inputmode="numeric" placeholder="1–31"></label>
@@ -796,12 +800,26 @@ td.paid { color: var(--ink-soft); }
   }
   function cardById(id) { return state.cards.find(function (c) { return c.id === id; }); }
   function bankById(id) { return state.banks.find(function (b) { return b.id === id; }); }
-  function validPay(p) { return p === "cash" || !!cardById(p) || !!bankById(p); }
+  function bnplById(id) { return state.loans.find(function (l) { return l.id === id && l.kind === "bnpl"; }); }
+  // A payment towards a BNPL whose purchases you record isn't new spending (the purchases already were), like paying off a card
+  function payTargetLoan(t) {
+    if (t.loan) return state.loans.find(function (l) { return l.id === t.loan; }) || null;
+    if (t.bill) return state.loans.find(function (l) { return l.billId === t.bill; }) || null;
+    return null;
+  }
+  function isTransfer(t) {
+    if (t.type !== "expense") return false;
+    var l = payTargetLoan(t);
+    return !!(l && l.kind === "bnpl" && l.trackBuys);
+  }
+  function bnplLoans() { return state.loans.filter(function (l) { return l.kind === "bnpl"; }); }
+  function validPay(p) { return p === "cash" || !!cardById(p) || !!bankById(p) || !!bnplById(p); }
   // "Cash or debit" | "Monzo" | "Amex" — and how to phrase it
   function payInfo(p) {
     if (!p || p === "cash") return { kind: "cash", name: "Cash or debit" };
     var c = cardById(p); if (c) return { kind: "card", name: c.name };
     var b = bankById(p); if (b) return { kind: "bank", name: b.name };
+    var n = bnplById(p); if (n) return { kind: "card", name: n.name, bnpl: true };
     return { kind: "gone", name: "Removed account" };
   }
   function payOptionsHtml(sel) {
@@ -810,6 +828,8 @@ td.paid { color: var(--ink-soft); }
       return '<option value="' + b.id + '">' + esc(b.name) + (b.cur === "PHP" ? " (PH)" : "") + "</option>"; }).join("") + "</optgroup>";
     if (state.cards.length) o += '<optgroup label="Credit cards">' + state.cards.map(function (c) {
       return '<option value="' + c.id + '">' + esc(c.name) + (isPH(c) ? " (PH)" : "") + "</option>"; }).join("") + "</optgroup>";
+    if (bnplLoans().length) o += '<optgroup label="Buy now, pay later">' + bnplLoans().map(function (l) {
+      return '<option value="' + l.id + '">' + esc(l.name) + (l.cur === "PHP" ? " (PH)" : "") + "</option>"; }).join("") + "</optgroup>";
     return o;
   }
   function isPH(card) { return card && card.cur === "PHP"; }
@@ -860,7 +880,19 @@ td.paid { color: var(--ink-soft); }
   var PER_MONTH = { monthly: 1, weekly: 52 / 12, "2weekly": 26 / 12, "4weekly": 13 / 12, quarterly: 1 / 3, "6monthly": 1 / 6, yearly: 1 / 12 };
   function freqOf(b) { return b.freq && PER_MONTH[b.freq] ? b.freq : "monthly"; }
   function freqLabel(b) { var f = FREQS.find(function (x) { return x[0] === freqOf(b); }); return f ? f[1] : "Monthly"; }
-  function perMonth(b) { return b.amount * PER_MONTH[freqOf(b)]; }
+  // A bill with no set amount "varies": its estimate is the average of the last 3 payments
+  function isVar(b) { return !(b.amount > 0); }
+  function billEst(b) {
+    if (!isVar(b)) return b.amount;
+    var ps = state.tx.filter(function (t) { return t.bill === b.id && t.type === "expense"; }).sort(function (a, c) { return c.date.localeCompare(a.date); }).slice(0, 3);
+    return ps.length ? ps.reduce(function (s2, t) { return s2 + (b.cur === t.cur ? t.orig : t.amount); }, 0) / ps.length : 0;
+  }
+  function billAmtText(b) {
+    var f = b.cur === "PHP" ? peso : money;
+    if (!isVar(b)) return f(b.amount);
+    var e = billEst(b); return "Varies" + (e > 0 ? " (≈ " + f(e) + ")" : "");
+  }
+  function perMonth(b) { return billEst(b) * PER_MONTH[freqOf(b)]; }
   function parseDay(str) { var p = String(str).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
   function dayKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function addMonthsClamped(base, n, day) {
@@ -929,7 +961,7 @@ td.paid { color: var(--ink-soft); }
       });
     });
     items.sort(function (a, b) { return a.due - b.due; });
-    var total = items.reduce(function (s, i) { return s + billGbp(i.bill, i.bill.amount); }, 0);
+    var total = items.reduce(function (s, i) { return s + billGbp(i.bill, billEst(i.bill)); }, 0);
     return { payday: pd, items: items, total: total };
   }
 
@@ -959,13 +991,13 @@ td.paid { color: var(--ink-soft); }
     box.innerHTML = '<div class="pd-head"><div><div class="pd-title">' +
       (r.items.length ? "Due before payday" : "All bills covered until payday") + "</div>" +
       '<div class="pd-sub">Payday ' + pdLabel + " · " + (days === 1 ? "tomorrow" : "in " + days + " days") + "</div></div>" +
-      (r.items.length ? '<div class="pd-total">' + money(r.total) + "</div>" : "") + "</div>" +
+      (r.items.length ? '<div class="pd-total">' + money(r.total) + (r.items.some(function (i) { return isVar(i.bill) && !(billEst(i.bill) > 0); }) ? '<small style="display:block;font-size:12px;font-weight:400;color:var(--ink-soft)">+ bills that vary</small>' : "") + "</div>" : "") + "</div>" +
       (r.items.length ? '<ul class="pd-list">' + r.items.map(function (i) {
         var b = i.bill;
         return '<li><input type="checkbox" class="bill-check" data-pdpay="' + b.id + '" data-occ="' + i.key + '" aria-label="Mark ' + esc(b.name) + ' as paid">' +
           "<div>" + esc(b.name) + ' <span class="' + (i.late ? "late" : "bill-meta") + '">' + (i.late ? "overdue, was due " : "due ") + fmt(i.due) +
           (function () { var pi = payInfo(b.pay); return pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : ""; })() + "</span></div>" +
-          '<span class="amt">' + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + "</span></li>";
+          '<span class="amt">' + billAmtText(b) + "</span></li>";
       }).join("") + "</ul>" + paydaySplit(r.items) : "");
     return true;
   }
@@ -1002,7 +1034,7 @@ td.paid { color: var(--ink-soft); }
       if (p) { status = "Paid"; cls = "paid"; paidN++; }
       else if (billFinished(b)) { status = "Loan paid off"; cls = "paid"; paidN++; }
       else {
-        owing += billGbp(b, b.amount);
+        owing += billGbp(b, billEst(b));
         if (diff < 0) { status = "Overdue"; cls = "late"; }
         else if (diff === 0) { status = "Due today"; cls = "soon"; }
         else if (diff <= 3) { status = "Due in " + diff + (diff === 1 ? " day" : " days"); cls = "soon"; }
@@ -1010,21 +1042,21 @@ td.paid { color: var(--ink-soft); }
       }
       var c = catById(b.category), pi = payInfo(b.pay), f = freqOf(b);
       var meta = "Due " + o.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
-        (pi.kind === "bank" ? " · " + esc(pi.name) : pi.kind === "card" ? " · " + esc(pi.name) + " card" : pi.kind === "gone" ? " · removed account" : "") +
+        (pi.kind === "bank" ? " · " + esc(pi.name) : pi.kind === "card" ? " · " + esc(pi.name) + (pi.bnpl ? " BNPL" : " card") : pi.kind === "gone" ? " · removed account" : "") +
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
-      var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : b.amount, idk = b.id + "_" + o.key;
+      var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : (isVar(b) ? null : b.amount), idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
         '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '" data-occ="' + o.key + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + " due " + o.date.toLocaleDateString() + ' as paid">' +
         '<div><div class="bill-name">' + esc(b.name) + '</div><div class="bill-meta">' + meta + "</div></div>" +
         '<span class="status ' + cls + '">' + status + "</span>" +
-        '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + idk + '" value="' + shown.toFixed(2) + '"' + (p ? " disabled" : "") +
+        '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + idk + '" value="' + (shown != null ? shown.toFixed(2) : "") + '"' + (shown == null ? ' placeholder="Varies"' : "") + (p ? " disabled" : "") +
         ' aria-label="Amount for ' + esc(b.name) + ' in ' + b.cur + '" title="' + (b.cur === "PHP" ? "Pesos" : "Pounds") + '">' +
         '<button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></div>';
     }).join("") || '<p class="empty">No bills due in ' + label + ".</p>";
     if (notDue.length) {
       $("bills").innerHTML += '<div class="not-due"><span>Not due in ' + label + ":</span> " + notDue.map(function (b) {
         var nx = nextOccurrence(b, mTo);
-        return '<span class="nd-item">' + esc(b.name) + " <small>" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) +
+        return '<span class="nd-item">' + esc(b.name) + " <small>" + billAmtText(b) +
           (nx ? " · next " + nx.date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: nx.date.getFullYear() !== y ? "numeric" : undefined }) : " · set a due date") +
           '</small> <button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></span>';
       }).join("") + "</div>";
@@ -1042,7 +1074,7 @@ td.paid { color: var(--ink-soft); }
 
   var allBillsOpen = false;
   document.addEventListener("toggle", function (e) { if (e.target.classList && e.target.classList.contains("all-bills")) allBillsOpen = e.target.open; }, true);
-  function toggleBill(b, checked, key, fromPayday) {
+  function toggleBill(b, checked, key, fromPayday, amtOverride) {
     var existing = occPayment(b, key);
     if (!checked) {
       if (existing) state.tx = state.tx.filter(function (t) { return t !== existing; });
@@ -1050,8 +1082,18 @@ td.paid { color: var(--ink-soft); }
     }
     if (existing) return;
     var amtEl = fromPayday ? null : $("bamt-" + b.id + "_" + key);
-    var v = amtEl ? parseFloat(amtEl.value) : b.amount;
-    if (!(v > 0)) { toast("Enter the amount for " + b.name); render(); return; }
+    var v = amtOverride > 0 ? amtOverride : amtEl ? parseFloat(amtEl.value) : b.amount;
+    if (!(v > 0)) {
+      render();
+      openEditor({
+        title: "How much did you pay for " + b.name + "?",
+        fields: [{ key: "amt", label: "Amount paid (" + (b.cur === "PHP" ? "₱" : "£") + ")", type: "number", value: billEst(b) > 0 ? billEst(b).toFixed(2) : "", full: true },
+                 { key: "n", label: "This bill's amount varies, so enter what actually went out this time.", type: "note" }],
+        saveLabel: "Mark as paid", savedMsg: "",
+        onSave: function (vv) { if (!(vv.amt > 0)) return "Enter the amount you paid."; setTimeout(function () { toggleBill(b, true, key, fromPayday, vv.amt); }, 0); }
+      });
+      return;
+    }
     var rate = 1;
     if (b.cur === "PHP") { if (!state.rate) { toast("Needs an exchange rate first"); render(); return; } rate = state.rate.value; }
     // The due date of this payment
@@ -1102,7 +1144,7 @@ td.paid { color: var(--ink-soft); }
     var txs = monthView(), mk0 = monthKey();
     var income = 0, spent = 0, byCat = {}, phpSpent = 0, phpSpentGbp = 0;
     txs.forEach(function (t) {
-      if (t.type === "cardpay") return;
+      if (t.type === "cardpay" || isTransfer(t)) return;
       if (countsFor(t) !== mk0) return;
       if (t.type === "expense" && t.cur === "PHP") { phpSpent += t.orig; phpSpentGbp += t.amount; }
       if (t.type === "income") income += t.amount;
@@ -1194,7 +1236,8 @@ td.paid { color: var(--ink-soft); }
             : t.type === "cardpay" ? '<span class="cat-tag"><span class="dot" style="background:' + (card ? card.color : "#999") + '"></span>Paid ' + esc(cardName) + "</span>"
             : '<span class="cat-tag"><span class="dot" style="background:' + catColor(t.category) + '"></span>' + esc(catLabel(t.category)) + "</span>" +
               (function () { var pi = payInfo(t.pay); return pi.kind === "cash" ? "" : '<span class="pay-tag">' + (pi.kind === "bank" ? "From " : pi.kind === "card" ? "On " : "") + esc(pi.name) + "</span>"; })() +
-              (t.loan ? (function () { var ln = state.loans.find(function (x) { return x.id === t.loan; }); return '<span class="pay-tag">Pays off ' + esc(ln ? ln.name : "removed loan") + "</span>"; })() : "") + carryTag;
+              (t.loan ? (function () { var ln = state.loans.find(function (x) { return x.id === t.loan; }); return '<span class="pay-tag">Pays off ' + esc(ln ? ln.name : "removed loan") + "</span>"; })() : "") +
+              (isTransfer(t) ? '<span class="pay-tag">Paying off ' + esc(payTargetLoan(t).name) + " · not counted as spending</span>" : "") + carryTag;
           var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
           var sign = t.type === "income" ? "+" : t.type === "cardpay" ? "" : "−";
           if (t.type === "cardpay" && isPH(card)) {
@@ -1252,7 +1295,7 @@ td.paid { color: var(--ink-soft); }
         cardAmt: isPH(L.c) ? orig : undefined, date: date, category: null, note: $("note").value.trim() || "Card payment" });
       msg = "Payment recorded · " + L.c.name + " now " + cm(L.c, cardStats(L.c, "").balance);
     } else {
-      var tx = { id: uid(), type: txType, cur: cur, orig: orig, rate: rate, amount: gbp, date: date,
+      var tx = { id: uid(), type: txType, created: Date.now(), cur: cur, orig: orig, rate: rate, amount: gbp, date: date,
         category: txType === "expense" ? $("cat").value : null,
         pay: txType === "expense" ? $("pay").value : undefined,
         cardAmt: txType === "expense" ? cardAmtFor($("pay").value, cur, orig, gbp) : undefined,
@@ -1309,7 +1352,7 @@ td.paid { color: var(--ink-soft); }
   $("addBill").onclick = function () {
     var name = $("bName").value.trim(), amt = parseFloat($("bAmt").value), due = parseInt($("bDue").value, 10), freq = $("bFreq").value, start = $("bStart").value;
     if (!name) { toast("Give the bill a name"); $("bName").focus(); return; }
-    if (!(amt > 0)) { toast("Enter the usual amount"); $("bAmt").focus(); return; }
+    if (!(amt >= 0)) amt = 0;
     if (freq === "monthly" && !(due >= 1 && due <= 31)) { toast("Due day must be 1 to 31"); $("bDue").focus(); return; }
     if (freq !== "monthly" && !start) { toast("Pick the next due date"); $("bStart").focus(); return; }
     var nb = { id: uid(), name: name, amount: Math.round(amt * 100) / 100, cur: $("bCur").value, freq: freq,
@@ -1317,7 +1360,7 @@ td.paid { color: var(--ink-soft); }
     if (freq !== "monthly") nb.start = start;
     state.bills.push(nb);
     $("bName").value = ""; $("bAmt").value = ""; $("bDue").value = ""; $("bStart").value = "";
-    save(); render(); toast("Bill added");
+    save(); render(); toast(nb.amount > 0 ? "Bill added" : "Bill added · amount varies");
   };
 
   $("addCard").onclick = function () {
@@ -1446,7 +1489,7 @@ td.paid { color: var(--ink-soft); }
       if (+ck.slice(0, 4) !== y) return;
       var m = months[+ck.slice(5, 7) - 1];
       m.count++;
-      if (t.type === "cardpay") return;
+      if (t.type === "cardpay" || isTransfer(t)) return;
       m.spent += t.amount;
       cats[t.category] = (cats[t.category] || 0) + t.amount;
       if (t.cur === "PHP") { m.php += t.orig; m.phpGbp += t.amount; php += t.orig; phpGbp += t.amount; }
@@ -1594,11 +1637,13 @@ td.paid { color: var(--ink-soft); }
     var bal = l.balance || 0, r = (l.apr || 0) / 1200, paidCount = 0;
     state.tx.filter(function (t) {
       if (t.type !== "expense") return false;
-      if (!(t.loan === l.id || (l.billId && t.bill === l.billId))) return false;
+      var isPay = t.loan === l.id || (l.billId && t.bill === l.billId), isBuy = l.kind === "bnpl" && t.pay === l.id;
+      if (!isPay && !isBuy) return false;
       var when = t.created || new Date(t.date + "T23:59:59").getTime();
       return when > (l.asOf || 0);
     }).sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
       var amt = l.cur === t.cur ? t.orig : l.cur === "PHP" ? (state.rate ? t.amount / state.rate.value : 0) : t.amount;
+      if (l.kind === "bnpl" && t.pay === l.id && !(t.loan === l.id || (l.billId && t.bill === l.billId))) { bal += amt; return; } // a purchase
       var interest = bal * r;
       bal = Math.max(0, bal + interest - amt); paidCount++;
     });
@@ -1621,7 +1666,7 @@ td.paid { color: var(--ink-soft); }
     var now = isNew ? 0 : loanState(l).balance;
     var billOpts = [["__new", "Create a monthly bill for it"], ["", "Don't add it to Bills"]].concat(state.bills.map(function (b) {
       var other = state.loans.find(function (x) { return x.billId === b.id && x !== l; });
-      return [b.id, b.name + " (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + ", " + freqLabel(b).toLowerCase() + ")" + (other ? " · linked to " + other.name : "")];
+      return [b.id, b.name + " (" + billAmtText(b) + ", " + freqLabel(b).toLowerCase() + ")" + (other ? " · linked to " + other.name : "")];
     }));
     openEditor({
       title: isNew ? "Add a loan or debt" : "Edit " + l.name,
@@ -1630,8 +1675,11 @@ td.paid { color: var(--ink-soft); }
         { key: "kind", label: "Type", type: "select", value: l.kind, options: LOAN_KINDS },
         { key: "cur", label: "Currency", type: "select", value: l.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
         { key: "bal", label: "Balance owed today", type: "number", value: isNew ? "" : now.toFixed(2) },
-        { key: "pay", label: "Monthly payment", type: "number", value: (loanBill(l) && freqOf(loanBill(l)) === "monthly" ? loanBill(l).amount : l.payment) || "" },
+        { key: "pay", label: "Monthly payment (leave blank if it varies)", type: "number", value: (loanBill(l) && freqOf(loanBill(l)) === "monthly" ? loanBill(l).amount : l.payment) || "", full: true },
         { key: "apr", label: "Interest rate (APR %, optional)", type: "number", step: "0.01", value: l.apr || "", full: true },
+        { key: "limit", label: "Spending limit (optional)", type: "number", step: "1", value: l.limit || "", full: true, showIf: function (v) { return v.kind === "bnpl"; } },
+        { key: "track", label: "I'll record purchases on it (choose it under Paid with)", type: "checkbox", value: l.trackBuys !== undefined ? !!l.trackBuys : !!l.limit, showIf: function (v) { return v.kind === "bnpl"; } },
+        { key: "nb", label: "With this ticked, purchases count as spending when you make them and lower what's available. Its payments then work like paying off a credit card, so they aren't counted as spending twice. Leave it unticked if you only track the repayments.", type: "note", showIf: function (v) { return v.kind === "bnpl"; } },
         { key: "bill", label: "Monthly payment in Bills", type: "select", value: forceNew ? "__new" : (l.billId || (isNew && !l.billId ? "__new" : "")), options: billOpts, full: true },
         { key: "due", label: "Payment due day each month", type: "number", step: "1", value: l.dueDay || "", showIf: function (v) { return v.bill === "__new"; } },
         { key: "bpay", label: "Paid from", type: "select", value: l.payWith && validPay(l.payWith) ? l.payWith : "cash", options: payOptions(), showIf: function (v) { return v.bill === "__new"; } },
@@ -1644,17 +1692,17 @@ td.paid { color: var(--ink-soft); }
         if (!(v.bal >= 0)) return "Enter the balance you owe today.";
         if (v.bill && v.bill !== "__new" && state.loans.some(function (x) { return x.billId === v.bill && x !== l; })) return "That bill is already linked to another loan.";
         if (v.bill === "__new") {
-          if (!(v.pay > 0)) return "Enter the monthly payment, so its bill knows how much to show. For varying amounts use a typical one.";
           var dd = Math.round(v.due); if (!(dd >= 1 && dd <= 31)) return "Enter the day of the month the payment is due (1–31).";
-          var nb = { id: uid(), name: v.name.trim(), amount: r2(v.pay), cur: v.cur, freq: "monthly", due: dd, category: v.bcat, pay: v.bpay };
+          var nb = { id: uid(), name: v.name.trim(), amount: v.pay > 0 ? r2(v.pay) : 0, cur: v.cur, freq: "monthly", due: dd, category: v.bcat, pay: v.bpay };
           state.bills.push(nb); v.bill = nb.id; l.dueDay = dd; l.payWith = v.bpay; l.category = v.bcat;
         }
         l.name = v.name.trim(); l.kind = v.kind; l.payment = Math.max(0, v.pay || 0); l.apr = Math.max(0, v.apr || 0); l.exclude = v.excl;
+        if (v.kind === "bnpl") { l.limit = Math.max(0, v.limit || 0); l.trackBuys = !!v.track; } else { delete l.limit; delete l.trackBuys; }
         var curChanged = l.cur !== v.cur; l.cur = v.cur;
         var billChanged = (l.billId || "") !== v.bill; l.billId = v.bill;
         if (isNew || curChanged || billChanged || Math.abs(v.bal - now) >= 0.005) { l.balance = Math.round(v.bal * 100) / 100; l.asOf = Date.now(); }
         if (isNew) { l.id = uid(); state.loans.push(l); }
-        var lb = l.billId && billById(l.billId); if (lb) { lb.debt = false; if (v.pay > 0 && freqOf(lb) === "monthly") lb.amount = r2(v.pay); }
+        var lb = l.billId && billById(l.billId); if (lb) { lb.debt = false; if (freqOf(lb) === "monthly") lb.amount = v.pay > 0 ? r2(v.pay) : 0; }
       },
       onDelete: isNew ? null : function () { state.loans = state.loans.filter(function (x) { return x !== l; }); },
       deleteLabel: "Remove", confirmDelete: isNew ? null : 'Remove "' + (l.name || "this debt") + '"? Its bill and payments stay as they are.',
@@ -1674,19 +1722,26 @@ td.paid { color: var(--ink-soft); }
       var payoff = st.balance <= 0 ? '<span style="color:var(--good)">Paid off</span>'
         : st.never ? '<span class="warn">Payment doesn\'t cover the interest</span>'
         : st.payoff ? "Around " + st.payoff.toLocaleDateString(undefined, { month: "short", year: "numeric" }) + "<small>" + st.months + (st.months === 1 ? " payment" : " payments") + " left</small>"
-        : "<small>Add a monthly payment to estimate</small>";
+        : "<small>" + (bill && isVar(bill) ? "Estimated after your first payment" : "Add a monthly payment to estimate") + "</small>";
       var t0 = new Date(), nxt = null; t0.setHours(0, 0, 0, 0);
       if (bill && st.balance > 0) {
         var occ = occurrences(bill, new Date(t0.getFullYear(), t0.getMonth(), 1), new Date(t0.getFullYear() + 1, t0.getMonth(), 1));
         nxt = occ.find(function (o) { return !occPayment(bill, o.key); }) || null;
       }
       var payCell = bill
-        ? (bill.cur === "PHP" ? peso(bill.amount) : money(bill.amount)) + "<small>" + freqLabel(bill).toLowerCase() + "</small>" +
+        ? billAmtText(bill) + "<small>" + freqLabel(bill).toLowerCase() + "</small>" +
           (nxt ? "<small" + (nxt.date < t0 ? ' class="warn"' : "") + ">" + (nxt.date < t0 ? "overdue since " : "next due ") + nxt.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) + "</small>" : "")
         : (l.payment ? loanMoney(l, l.payment) + "<small>a month</small>" : "–") +
           (editable && st.balance > 0 ? '<small><button class="small-btn" data-loanbill="' + l.id + '" style="margin-top:4px">Add to Bills</button></small>' : "");
+      var availHtml = "";
+      if (l.kind === "bnpl" && l.limit > 0) {
+        var av = l.limit - st.balance, used = Math.max(0, Math.min(100, st.balance / l.limit * 100));
+        out.bnplAvail = (out.bnplAvail || 0) + loanToGbp(l, av);
+        availHtml = '<div class="bnpl-av"><span class="' + (used >= 90 ? "warn" : "") + '"><b>' + loanMoney(l, av) + "</b> available to use</span> <small>of " + loanMoney(l, l.limit) + "</small>" +
+          '<div class="mini"><i style="width:' + used + "%;background:" + (used >= 90 ? "var(--over)" : "var(--brass)") + '"></i></div></div>';
+      }
       return '<div class="loan-row' + (editable ? "" : " ro") + '"><div><b>' + esc(l.name) + "</b><small>" + kindLabel(l.kind) + (l.apr ? " · " + l.apr + "% APR" : "") +
-        (bill ? " · paid through Bills" : editable ? " · not in Bills yet" : "") + (l.exclude ? " · not in ratio" : "") + "</small></div>" +
+        (bill ? " · paid through Bills" : editable ? " · not in Bills yet" : "") + (l.exclude ? " · not in ratio" : "") + "</small>" + availHtml + "</div>" +
         '<div class="num"><b>' + loanMoney(l, st.balance) + "</b>" + (l.cur === "PHP" && state.rate ? "<small>≈ " + money(gbpBal) + "</small>" : "") + "</div>" +
         '<div class="num">' + payCell + "</div>" +
         '<div class="num">' + payoff + (st.monthlyInterest > 0 ? "<small>~" + loanMoney(l, st.monthlyInterest) + " interest/month</small>" : "") + "</div>" +
@@ -1696,7 +1751,7 @@ td.paid { color: var(--ink-soft); }
     state.bills.forEach(function (b) {
       if (!b.debt || linked[b.id]) return;
       out.legacyTotal += billGbp(b, perMonth(b));
-      out.legacy += '<div class="legacy"><p><b>' + esc(b.name) + "</b> (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) +
+      out.legacy += '<div class="legacy"><p><b>' + esc(b.name) + "</b> (" + billAmtText(b) +
         " a month) is counted as a debt payment. Add it as a loan to track what's left to pay.</p>" +
         '<button class="small-btn" data-loanfrom="' + b.id + '">Add as a loan</button>' +
         '<button class="small-btn" data-undebt="' + b.id + '">Not a debt</button></div>';
@@ -1709,7 +1764,7 @@ td.paid { color: var(--ink-soft); }
     $("loansPanel").innerHTML = L.legacy + (state.loans.length ? L.head + L.rows
       : '<p class="empty">Add personal loans, car finance, buy now pay later, or money owed to family. Each one gets a monthly bill, and ticking that bill as paid lowers what you owe.</p>') +
       '<button class="ghost" id="addLoan" style="margin-top:12px">Add a loan or debt</button>';
-    $("sum-loans").textContent = state.loans.length ? money(L.owed) + " owed" : "";
+    $("sum-loans").textContent = state.loans.length ? money(L.owed) + " owed" + (L.bnplAvail != null ? " · " + money(L.bnplAvail) + " BNPL available" : "") : "";
   }
 
   function renderDebt(d) {
@@ -1728,9 +1783,11 @@ td.paid { color: var(--ink-soft); }
 
     var totalDebt = cardOwed + loanOwed, payments = cardPay + loanPay + billTotal, dtiPayments = cardPay + loanPayDti + billTotal;
     var hasPH = state.cards.some(isPH) || state.loans.some(function (l) { return l.cur === "PHP"; });
+    var bnplAv = L.bnplAvail;
 
     var totals = '<div class="cc-totals">' +
       "<div><span>Total debt</span><b>" + money(totalDebt) + "</b><span>Cards " + money(cardOwed) + " · loans " + money(loanOwed) + "</span></div>" +
+      (bnplAv != null ? "<div><span>Available on BNPL</span><b>" + money(bnplAv) + "</b></div>" : "") +
       "<div><span>Repayments a month</span><b>" + money(payments) + "</b>" + (loanInt > 0 ? "<span>About " + money(loanInt) + " of that is loan interest</span>" : "") + "</div></div>" +
       (hasPH ? '<p class="hint" style="margin:4px 0 0">Totals in £, with peso debts at today\'s rate.</p>' : "");
 
@@ -1920,7 +1977,8 @@ td.paid { color: var(--ink-soft); }
   function payOptions() {
     return [["cash", "Cash or debit (no bank set)"]]
       .concat(state.banks.map(function (b) { return [b.id, b.name + (b.cur === "PHP" ? " (PH bank, debit)" : " (debit)")]; }))
-      .concat(state.cards.map(function (c) { return [c.id, c.name + (isPH(c) ? " (PH credit card)" : " (credit card)")]; }));
+      .concat(state.cards.map(function (c) { return [c.id, c.name + (isPH(c) ? " (PH credit card)" : " (credit card)")]; }))
+      .concat(bnplLoans().map(function (l) { return [l.id, l.name + " (buy now, pay later)"]; }));
   }
   function r2(n) { return Math.round(n * 100) / 100; }
 
@@ -2001,7 +2059,7 @@ td.paid { color: var(--ink-soft); }
       fields: [
         { key: "sum", label: bsum, type: "note" },
         { key: "name", label: "Bill name", type: "text", value: b.name, full: true, max: 40 },
-        { key: "amt", label: "Usual amount", type: "number", value: b.amount },
+        { key: "amt", label: "Usual amount (blank if it varies)", type: "number", value: b.amount > 0 ? b.amount : "" },
         { key: "cur", label: "Currency", type: "select", value: b.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
         { key: "freq", label: "How often", type: "select", value: freqOf(b), options: FREQS },
         { key: "due", label: "Due day each month (1–31)", type: "number", step: "1", value: b.due, showIf: function (v) { return v.freq === "monthly"; } },
@@ -2013,7 +2071,7 @@ td.paid { color: var(--ink-soft); }
       ],
       onSave: function (v) {
         if (!v.name.trim()) return "Give the bill a name.";
-        if (!(v.amt > 0)) return "Enter the usual amount.";
+        if (!(v.amt > 0)) v.amt = 0;
         if (v.freq === "monthly") {
           var due = Math.round(v.due);
           if (!(due >= 1 && due <= 31)) return "Due day must be 1 to 31.";
@@ -2104,10 +2162,10 @@ td.paid { color: var(--ink-soft); }
     items.forEach(function (i) {
       var pi = payInfo(i.bill.pay), k = pi.kind === "gone" ? "cash" : (i.bill.pay || "cash");
       if (!groups[k]) { groups[k] = { pi: pi.kind === "gone" ? payInfo("cash") : pi, gbp: 0, php: 0 }; order.push(k); }
-      if (i.bill.cur === "PHP") groups[k].php += i.bill.amount; else groups[k].gbp += i.bill.amount;
+      if (i.bill.cur === "PHP") groups[k].php += billEst(i.bill); else groups[k].gbp += billEst(i.bill);
     });
     return '<div class="pd-split"><span>Needed in each account:</span>' + order.map(function (k) {
-      var g = groups[k], amt = [g.gbp ? money(g.gbp) : "", g.php ? peso(g.php) : ""].filter(Boolean).join(" + ");
+      var g = groups[k], amt = [g.gbp ? money(g.gbp) : "", g.php ? peso(g.php) : ""].filter(Boolean).join(" + ") || "varies";
       var label = g.pi.kind === "bank" ? g.pi.name : g.pi.kind === "card" ? g.pi.name + " (card)" : "No bank set";
       return "<span>" + esc(label) + " <b>" + amt + "</b></span>";
     }).join("") + "</div>";
@@ -2440,7 +2498,7 @@ td.paid { color: var(--ink-soft); }
     var sel = $("link"), prev = sel.value, T = linkTargets(), fmt = function (d) { return d.toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
     var h = '<option value="">Everyday spending (not a bill or card)</option>';
     if (T.bills.length) h += '<optgroup label="Bills not paid yet">' + T.bills.map(function (x) {
-      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + (x.b.cur === "PHP" ? peso(x.b.amount) : money(x.b.amount)) + "</option>"; }).join("") + "</optgroup>";
+      return '<option value="bill:' + x.b.id + ":" + x.o.key + '">' + esc(x.b.name) + " · due " + fmt(x.o.date) + " · " + billAmtText(x.b) + "</option>"; }).join("") + "</optgroup>";
     if (T.cards.length) h += '<optgroup label="Paying off a credit card">' + T.cards.map(function (c) {
       return '<option value="card:' + c.id + '">' + esc(c.name) + " · " + cm(c, cardStats(c, "").balance) + " owed</option>"; }).join("") + "</optgroup>";
     sel.innerHTML = h;
@@ -2462,7 +2520,7 @@ td.paid { color: var(--ink-soft); }
     $("payWrap").style.display = L && L.kind === "card" ? "none" : "";
     if (!L) { $("addTx").textContent = "Add expense"; updatePreview(); return; }
     if (L.kind === "bill") {
-      $("amt").value = L.b.amount.toFixed(2); $("cur").value = L.b.cur;
+      $("amt").value = isVar(L.b) ? "" : L.b.amount.toFixed(2); $("cur").value = L.b.cur;
       if (catById(L.b.category)) $("cat").value = L.b.category;
       if (validPay(L.b.pay)) $("pay").value = L.b.pay;
       $("note").value = L.b.name; $("addTx").textContent = "Mark " + L.b.name + " as paid";
