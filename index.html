@@ -1664,10 +1664,12 @@ td.paid { color: var(--ink-soft); }
       : state.loans.find(function (x) { return x.id === id; });
     if (!l) return;
     var now = isNew ? 0 : loanState(l).balance;
-    var billOpts = [["__new", "Create a monthly bill for it"], ["", "Don't add it to Bills"]].concat(state.bills.map(function (b) {
-      var other = state.loans.find(function (x) { return x.billId === b.id && x !== l; });
-      return [b.id, b.name + " (" + billAmtText(b) + ", " + freqLabel(b).toLowerCase() + ")" + (other ? " · linked to " + other.name : "")];
-    }));
+    // Only offer this loan's own bill and bills no other loan is using
+    var own = l.billId ? billById(l.billId) : null;
+    var free = state.bills.filter(function (b) { return b !== own && !state.loans.some(function (x) { return x !== l && x.billId === b.id; }); });
+    var billOpts = (own ? [[own.id, "Its bill: " + own.name + " (" + billAmtText(own) + ", " + freqLabel(own).toLowerCase() + ")"]] : [])
+      .concat([["__new", "Create a new monthly bill for it"], ["", "Don't add it to Bills"]])
+      .concat(free.map(function (b) { return [b.id, "Use existing bill: " + b.name + " (" + billAmtText(b) + ", " + freqLabel(b).toLowerCase() + ")"]; }));
     openEditor({
       title: isNew ? "Add a loan or debt" : "Edit " + l.name,
       fields: [
@@ -1719,6 +1721,7 @@ td.paid { color: var(--ink-soft); }
       if (st.balance > 0) { out.pay += gbpPay; if (!l.exclude) out.payDti += gbpPay; }
       if (l.billId) linked[l.billId] = true;
       var bill = l.billId ? billById(l.billId) : null;
+      var shared = bill ? state.loans.filter(function (x) { return x !== l && x.billId === l.billId; }) : [];
       var payoff = st.balance <= 0 ? '<span style="color:var(--good)">Paid off</span>'
         : st.never ? '<span class="warn">Payment doesn\'t cover the interest</span>'
         : st.payoff ? "Around " + st.payoff.toLocaleDateString(undefined, { month: "short", year: "numeric" }) + "<small>" + st.months + (st.months === 1 ? " payment" : " payments") + " left</small>"
@@ -1741,7 +1744,8 @@ td.paid { color: var(--ink-soft); }
           '<div class="mini"><i style="width:' + used + "%;background:" + (used >= 90 ? "var(--over)" : "var(--brass)") + '"></i></div></div>';
       }
       return '<div class="loan-row' + (editable ? "" : " ro") + '"><div><b>' + esc(l.name) + "</b><small>" + kindLabel(l.kind) + (l.apr ? " · " + l.apr + "% APR" : "") +
-        (bill ? " · paid through Bills" : editable ? " · not in Bills yet" : "") + (l.exclude ? " · not in ratio" : "") + "</small>" + availHtml + "</div>" +
+        (bill ? " · paid through Bills" : editable ? " · not in Bills yet" : "") + (l.exclude ? " · not in ratio" : "") + "</small>" +
+        (shared.length ? '<small class="warn">Shares a bill with ' + esc(shared.map(function (x) { return x.name; }).join(", ")) + ". Tap Edit and create its own bill.</small>" : "") + availHtml + "</div>" +
         '<div class="num"><b>' + loanMoney(l, st.balance) + "</b>" + (l.cur === "PHP" && state.rate ? "<small>≈ " + money(gbpBal) + "</small>" : "") + "</div>" +
         '<div class="num">' + payCell + "</div>" +
         '<div class="num">' + payoff + (st.monthlyInterest > 0 ? "<small>~" + loanMoney(l, st.monthlyInterest) + " interest/month</small>" : "") + "</div>" +
