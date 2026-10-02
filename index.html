@@ -140,9 +140,6 @@ td.inc { color: var(--good); }
 .lk-forgot { margin-top: 10px; text-align: left; font-size: 14px; color: var(--ink-soft); }
 .lk-forgot summary { cursor: pointer; text-align: center; }
 .lk-forgot p { margin: 10px 0; }
-.rc-box { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--paper); border: 1px dashed var(--ink-soft); border-radius: 10px; padding: 12px 14px; }
-.rc-box code { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 18px; letter-spacing: .04em; word-break: break-all; }
-.lk-alt { background: none; border: 0; color: var(--ink-soft); text-decoration: underline; text-underline-offset: 3px; font-size: 14px; margin-top: 6px; padding: 4px; }
 .lockdot { font-size: 12px; margin-left: 4px; }
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
 .tabs { display: inline-flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
@@ -349,13 +346,6 @@ td.paid { color: var(--ink-soft); }
         <button class="small-btn" id="restoreBtn">Restore from backup</button>
         <input type="file" id="restoreFile" accept=".json,application/json" hidden>
       </div>
-      <div class="pactions" id="pLockRow">
-        <button class="small-btn" id="pLock">Lock with a passcode</button>
-        <button class="small-btn" id="pLockNow" hidden>Lock now</button>
-        <button class="small-btn" id="pChangePass" hidden>Change passcode</button>
-        <button class="small-btn" id="pRecovery" hidden>New recovery code</button>
-        <button class="small-btn" id="pUnlockOff" hidden>Remove lock</button>
-      </div>
       <div class="pactions">
         <button class="small-btn" id="pRename">Rename this profile</button>
         <button class="small-btn danger" id="pDelete">Delete this profile</button>
@@ -371,14 +361,14 @@ td.paid { color: var(--ink-soft); }
       <h2 id="lkTitle">Locked</h2>
       <p class="lk-hint" id="lkHint"></p>
       <div class="lk-row">
-        <input type="password" id="lkPass" autocomplete="current-password" placeholder="Passcode" aria-label="Passcode">
+        <input type="password" id="lkPass" autocomplete="current-password" placeholder="Passcode or recovery code" aria-label="Passcode or recovery code">
         <button class="primary" id="lkBtn">Unlock</button>
       </div>
       <p class="err" id="lkErr"></p>
-      <button class="lk-alt" id="lkMode">Forgot it? Use your recovery code</button>
       <details class="lk-forgot">
-        <summary>No recovery code?</summary>
-        <p>Without the passcode or recovery code the data can't be opened, because it's encrypted. You can delete this profile and restore it from a backup file instead.</p>
+        <summary>Don't have either?</summary>
+        <p>The data is encrypted, so it can't be opened without them. You can replace it with a backup file instead, which permanently discards the locked data.</p>
+        <button class="small-btn" id="lkRestore">Restore from a backup</button>
         <button class="small-btn danger" id="lkDelete">Delete this profile</button>
       </details>
     </div>
@@ -580,91 +570,37 @@ td.paid { color: var(--ink-soft); }
       return d;
     } catch (e) { return JSON.parse(JSON.stringify(DEFAULT)); }
   }
-  var keys = {}; // profileId -> { key, salt, iter } while unlocked (memory only)
-  var saveChain = Promise.resolve();
   function save() {
     var p = profiles.list.find(function (x) { return x.id === profiles.current; });
-    if (p && p.locked) {
-      var k = keys[p.id]; if (!k) return; // locked and not unlocked: never touch the stored data
-      var storeKey = KEY, json = JSON.stringify(state);
-      saveChain = saveChain.then(function () { return encryptJSON(json, k); })
-        .then(function (blob) { localStorage.setItem(storeKey, JSON.stringify(blob)); })
-        .catch(function () { toast("Couldn't save — browser storage is unavailable"); });
-      return;
-    }
+    if (p && p.locked) return; // still holds encrypted data from an older version: never overwrite it
     try { localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (e) { toast("Couldn't save — browser storage is unavailable"); }
   }
 
-  // ---------- Encryption (Web Crypto: PBKDF2-SHA256 → AES-GCM 256) ----------
-  var ITER = 310000;
-  function b64(buf) { var b = new Uint8Array(buf), s = ""; for (var i = 0; i < b.length; i++) s += String.fromCharCode(b[i]); return btoa(s); }
-  function unb64(str) { var s = atob(str), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
+  // ---------- Opening data locked by an older version (decrypt only) ----------
+  function b64dec(str) { var s = atob(str), b = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; }
   function deriveKey(pass, salt, iter) {
     return crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]).then(function (base) {
-      return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
     });
   }
-  // v2 layout: data is encrypted with a random data key; that key is stored twice,
-  // once wrapped by the passcode and once by the recovery code.
-  var RC_ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  function genRecovery() {
-    var b = crypto.getRandomValues(new Uint8Array(20)), out = "";
-    for (var i = 0; i < b.length; i++) out += RC_ALPHA[b[i] % 32];
-    return out.match(/.{5}/g).join("-");
-  }
-  function normRec(c) { return String(c || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
-  function wrapRaw(raw, secret) {
-    var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    return deriveKey(secret, salt, ITER).then(function (kek) { return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, kek, raw); })
-      .then(function (ct) { return { salt: b64(salt), iv: b64(iv), ct: b64(ct), iter: ITER }; });
-  }
-  function unwrapRaw(w, secret) {
-    return deriveKey(secret, unb64(w.salt), w.iter || ITER).then(function (kek) {
-      return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(w.iv) }, kek, unb64(w.ct));
-    }).then(function (b) { return new Uint8Array(b); });
-  }
-  function keyFromRaw(raw, wraps) {
-    return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["encrypt", "decrypt"])
-      .then(function (dk) { return { dk: dk, raw: raw, wraps: wraps }; });
-  }
-  function createLock(pass) {
-    var raw = crypto.getRandomValues(new Uint8Array(32)), rec = genRecovery();
-    return Promise.all([wrapRaw(raw, pass), wrapRaw(raw, normRec(rec))]).then(function (w) {
-      return keyFromRaw(raw, { pass: w[0], rec: w[1] });
-    }).then(function (k) { return { k: k, rec: rec }; });
-  }
-  function encryptJSON(json, k) {
-    var iv = crypto.getRandomValues(new Uint8Array(12));
-    return crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k.dk, new TextEncoder().encode(json)).then(function (ct) {
-      return { enc: 2, v: 2, wraps: k.wraps, iv: b64(iv), ct: b64(ct) };
-    });
-  }
-  // mode "pass" or "rec". Resolves to { data, k, legacy } or rejects.
-  function openBlob(blob, secret, mode) {
+  function aesOpen(key, iv, ct) { return crypto.subtle.decrypt({ name: "AES-GCM", iv: b64dec(iv) }, key, b64dec(ct)); }
+  // Resolves to the stored data, or rejects if the passcode / recovery code is wrong
+  function openBlob(blob, secret) {
+    var parse = function (pt) { return JSON.parse(new TextDecoder().decode(pt)); };
     if (blob.enc === 2) {
-      var w = blob.wraps && blob.wraps[mode];
-      if (!w) return Promise.reject(new Error("no " + mode));
-      var sec = mode === "rec" ? normRec(secret) : secret, kk;
-      return unwrapRaw(w, sec).then(function (raw) { return keyFromRaw(raw, blob.wraps); }).then(function (k) {
-        kk = k; return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(blob.iv) }, k.dk, unb64(blob.ct));
-      }).then(function (pt) { return { data: JSON.parse(new TextDecoder().decode(pt)), k: kk }; });
+      var tries = [["pass", secret], ["rec", String(secret || "").toUpperCase().replace(/[^A-Z0-9]/g, "")]].filter(function (t) { return blob.wraps && blob.wraps[t[0]]; });
+      var attempt = function (i) {
+        if (i >= tries.length) return Promise.reject(new Error("wrong"));
+        var w = blob.wraps[tries[i][0]];
+        return deriveKey(tries[i][1], b64dec(w.salt), w.iter).then(function (kek) { return aesOpen(kek, w.iv, w.ct); })
+          .then(function (raw) { return crypto.subtle.importKey("raw", raw, { name: "AES-GCM" }, false, ["decrypt"]); })
+          .then(function (dk) { return aesOpen(dk, blob.iv, blob.ct); }).then(parse)
+          .catch(function () { return attempt(i + 1); });
+      };
+      return attempt(0);
     }
-    if (mode !== "pass") return Promise.reject(new Error("old lock has no recovery code"));
-    // Older lock (v1): open it, then move it to the new layout (without a recovery code yet)
-    return decryptBlob(blob, secret).then(function (res) {
-      var raw = crypto.getRandomValues(new Uint8Array(32));
-      return wrapRaw(raw, secret).then(function (wp) { return keyFromRaw(raw, { pass: wp }); })
-        .then(function (k) { return { data: res.data, k: k, legacy: true }; });
-    });
-  }
-  function decryptBlob(blob, pass) {
-    var salt = unb64(blob.salt);
-    return deriveKey(pass, salt, blob.iter || ITER).then(function (key) {
-      return crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(blob.iv) }, key, unb64(blob.ct)).then(function (pt) {
-        return { data: JSON.parse(new TextDecoder().decode(pt)), k: { key: key, salt: salt, iter: blob.iter || ITER } };
-      });
-    });
+    return deriveKey(secret, b64dec(blob.salt), blob.iter || 310000).then(function (k) { return aesOpen(k, blob.iv, blob.ct); }).then(parse);
   }
   function storedBlob(id) { try { var d = JSON.parse(localStorage.getItem(keyFor(id))); return d && d.enc ? d : null; } catch (e) { return null; } }
 
@@ -1220,13 +1156,6 @@ td.paid { color: var(--ink-soft); }
     var cp = currentProfile();
     state.lastBackup = Date.now(); save(); renderBackupNag(); renderProfiles();
     var fname = "budget-backup-" + cp.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + "-" + today() + ".json";
-    if (cp.locked && keys[cp.id]) {
-      encryptJSON(JSON.stringify(state), keys[cp.id]).then(function (blob) {
-        blob.budgetBackup = 1; blob.hint = cp.hint || "";
-        download(fname, JSON.stringify(blob), "application/json"); toast("Encrypted backup saved. Restoring it needs this passcode or your recovery code.");
-      });
-      return;
-    }
     plainBackup(fname);
   };
   function plainBackup(fname) { download(fname, JSON.stringify(state, null, 2), "application/json"); }
@@ -1239,9 +1168,10 @@ td.paid { color: var(--ink-soft); }
         var d = JSON.parse(r.result);
         if (d && d.enc) { restoreEncrypted(d); return; }
         if (!Array.isArray(d.categories) || !Array.isArray(d.tx)) throw new Error();
-        if (!confirm("Replace the data in this browser with the backup?")) return;
+        if (currentProfile().locked) { if (!clearLockForRestore()) return; }
+        else if (!confirm("Replace the data in this browser with the backup?")) return;
         if (!d.rate) d.rate = state.rate;
-        state = migrate(d); openPay = null; save(); render(); renderRate(); renderProfiles();
+        state = migrate(d); openPay = null; save(); applyLock(); render(); renderRate(); renderProfiles(); renderBackupNag();
         if (!$("summaryView").hidden) renderSummary();
         toast("Backup restored");
       } catch (e) { toast("That file isn't a budget backup"); }
@@ -1254,14 +1184,16 @@ td.paid { color: var(--ink-soft); }
       title: "Restore an encrypted backup",
       fields: [
         { key: "p", label: "Passcode or recovery code from when this backup was made", type: "password", full: true },
+        { key: "n0", label: "This backup was made while the profile was locked. Once opened, it's stored unlocked.", type: "note" },
         { key: "n", label: (blob.hint ? "Hint: " + blob.hint + ". " : "") + "This replaces the data in the current profile.", type: "note" }
       ],
       onSave: function (v) {
         if (!v.p) return "Enter the passcode.";
-        openBlob(blob, v.p, "pass").catch(function () { return openBlob(blob, v.p, "rec"); }).then(function (res) {
-          if (!res.data || !Array.isArray(res.data.tx)) throw new Error();
-          if (!res.data.rate) res.data.rate = state.rate;
-          state = migrate(res.data); openPay = null; save(); render(); renderRate(); renderProfiles();
+        openBlob(blob, v.p).then(function (data) {
+          if (!data || !Array.isArray(data.tx)) throw new Error();
+          if (!data.rate) data.rate = state.rate;
+          if (currentProfile().locked && !clearLockForRestore()) return;
+          state = migrate(data); openPay = null; save(); applyLock(); render(); renderRate(); renderProfiles(); renderBackupNag();
           if (!$("summaryView").hidden) renderSummary();
           toast("Backup restored");
         }).catch(function () { toast("That didn't open the backup"); });
@@ -1658,7 +1590,6 @@ td.paid { color: var(--ink-soft); }
     back.innerHTML = '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle"><h3 id="mTitle">' + esc(cfg.title) + "</h3>" +
       '<div class="m-fields">' + cfg.fields.map(function (f) {
         if (f.type === "note") return '<p class="m-note" data-key="' + f.key + '">' + esc(f.label) + "</p>";
-        if (f.type === "code") return '<div class="rc-box" data-key="' + f.key + '"><code>' + esc(f.value) + '</code><button type="button" class="small-btn" data-copy="' + esc(f.value) + '">Copy</button></div>';
         var id = "m-" + f.key, input;
         if (f.type === "select") {
           input = '<select id="' + id + '">' + f.options.map(function (o) {
@@ -1697,12 +1628,6 @@ td.paid { color: var(--ink-soft); }
     back.addEventListener("change", refresh);
     refresh();
     back.addEventListener("mousedown", function (e) { if (e.target === back && !cfg.noCancel) closeEditor(); });
-    back.addEventListener("click", function (e) {
-      var cp = e.target.closest("[data-copy]"); if (!cp) return;
-      var txt = cp.dataset.copy;
-      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { cp.textContent = "Copied"; })
-        .catch(function () { cp.textContent = "Select and copy it"; });
-    });
     back.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !cfg.noCancel) closeEditor();
       if (e.key === "Enter" && e.target.tagName === "INPUT" && e.target.type !== "checkbox") { e.preventDefault(); back.querySelector("#mSave").click(); }
@@ -1944,12 +1869,13 @@ td.paid { color: var(--ink-soft); }
     }
   });
 
-  // ---------- Profile lock ----------
+  // ---------- Unlocking a profile locked by an older version ----------
+  // Locks have been removed. A profile that is still encrypted is opened once and then stored normally.
   var lockedView = false;
   function blank() { return migrate(JSON.parse(JSON.stringify(DEFAULT))); }
   function applyLock() {
     var cp = currentProfile();
-    lockedView = !!(cp.locked && !keys[cp.id]);
+    lockedView = !!cp.locked;
     $("lockScreen").hidden = !lockedView;
     if (lockedView) { $("monthView").hidden = true; $("summaryView").hidden = true; $("backupNag").hidden = true; }
     else {
@@ -1960,114 +1886,48 @@ td.paid { color: var(--ink-soft); }
     document.querySelector(".foot").hidden = lockedView;
     if (lockedView) {
       $("lkAvatar").textContent = initial(cp.name); $("lkAvatar").style.background = cp.color;
-      $("lkTitle").textContent = cp.name + "'s budget is locked";
-      $("lkHint").textContent = cp.hint ? "Hint: " + cp.hint : "";
-      if (recMode) setRecMode(false);
+      $("lkTitle").textContent = "Unlock " + cp.name + "'s budget one last time";
+      $("lkHint").textContent = (cp.hint ? "Hint: " + cp.hint + ". " : "") + "Locks have been removed from the tracker. Enter the passcode or recovery code once and this profile stays unlocked from now on.";
       $("lkPass").value = ""; $("lkErr").textContent = "";
       $("lkDelete").hidden = profiles.list.length < 2;
       setTimeout(function () { $("lkPass").focus(); }, 0);
     }
     renderProfiles();
   }
-  var fails = 0, waitUntil = 0, recMode = false;
-  function setRecMode(on) {
-    recMode = on;
-    $("lkPass").type = on ? "text" : "password";
-    $("lkPass").placeholder = on ? "Recovery code, e.g. K7QF2-M9XRT-…" : "Passcode";
-    $("lkPass").setAttribute("aria-label", on ? "Recovery code" : "Passcode");
-    $("lkPass").autocapitalize = on ? "characters" : "off";
-    $("lkMode").textContent = on ? "Use your passcode instead" : "Forgot it? Use your recovery code";
-    $("lkBtn").textContent = on ? "Reset passcode" : "Unlock";
-    $("lkPass").value = ""; $("lkErr").textContent = ""; $("lkPass").focus();
-  }
-  $("lkMode").onclick = function () { setRecMode(!recMode); };
+  var fails = 0, waitUntil = 0;
   function tryUnlock() {
-    var cp = currentProfile(), blob = storedBlob(cp.id), secret = $("lkPass").value, mode = recMode ? "rec" : "pass";
-    if (!secret) { $("lkErr").textContent = recMode ? "Enter your recovery code." : "Enter the passcode."; return; }
+    var cp = currentProfile(), blob = storedBlob(cp.id), secret = $("lkPass").value;
+    if (!blob) { cp.locked = false; delete cp.hint; saveProfiles(); state = migrate(load()); afterUnlock(); return; }
+    if (!secret) { $("lkErr").textContent = "Enter the passcode or recovery code."; return; }
     if (Date.now() < waitUntil) { $("lkErr").textContent = "Too many tries. Wait a few seconds."; return; }
-    if (!blob) { // nothing stored yet: start the lock afresh
-      createLock(secret).then(function (r) { keys[cp.id] = r.k; state = blank(); afterUnlock(); save(); showRecoveryCode(r.rec, true); });
-      return;
-    }
     $("lkBtn").disabled = true; $("lkErr").textContent = "Unlocking…";
-    openBlob(blob, secret, mode).then(function (r) {
-      fails = 0; keys[cp.id] = r.k; state = migrate(r.data); afterUnlock();
-      if (mode === "rec") { setRecMode(false); askNewPasscode(true); }
-      else if (r.legacy || !r.k.wraps.rec) { save(); offerRecovery(); }
+    openBlob(blob, secret).then(function (data) {
+      fails = 0;
+      cp.locked = false; delete cp.hint; saveProfiles();
+      state = migrate(data); save(); afterUnlock();
+      toast(cp.name + " is unlocked for good");
     }).catch(function () {
       fails++; if (fails >= 3) waitUntil = Date.now() + Math.min(30000, 2000 * fails);
-      $("lkErr").textContent = recMode
-        ? (blob.enc === 2 && blob.wraps && blob.wraps.rec ? "That recovery code isn't right." : "This profile was locked before recovery codes existed, so it doesn't have one.")
-        : "That passcode isn't right.";
+      $("lkErr").textContent = "That doesn't match the passcode or recovery code.";
       $("lkPass").select();
     }).then(function () { $("lkBtn").disabled = false; });
   }
-  function showRecoveryCode(code, isNew) {
-    var cp = currentProfile();
-    openEditor({
-      title: isNew ? "Save your recovery code" : "Your new recovery code",
-      fields: [
-        { key: "n1", label: "If you forget " + cp.name + "'s passcode, this code lets you set a new one. It's shown only once.", type: "note" },
-        { key: "code", type: "code", value: code },
-        { key: "n2", label: "Keep it in your password manager or somewhere safe at home, not in this tracker." + (isNew ? "" : " Your old recovery code no longer works."), type: "note" },
-        { key: "ok", label: "I've saved this code", type: "checkbox", value: false }
-      ],
-      noCancel: true, saveLabel: "Done", savedMsg: "",
-      onSave: function (v) { if (!v.ok) return "Tick the box once you've saved the code."; }
-    });
-  }
-  function offerRecovery() {
-    openEditor({
-      title: "Add a recovery code?",
-      fields: [{ key: "n", label: "This profile doesn't have a recovery code yet. With one, a forgotten passcode can be reset instead of losing the data.", type: "note" }],
-      saveLabel: "Create recovery code", cancelLabel: "Not now", savedMsg: "",
-      onSave: function () { setTimeout(newRecovery, 0); }
-    });
-  }
-  function newRecovery() {
-    var cp = currentProfile(), k = keys[cp.id]; if (!k) return;
-    var code = genRecovery();
-    wrapRaw(k.raw, normRec(code)).then(function (w) {
-      k.wraps = Object.assign({}, k.wraps, { rec: w }); save(); renderProfiles(); showRecoveryCode(code, false);
-    });
-  }
-  function askNewPasscode(afterReset) {
-    var cp = currentProfile();
-    openEditor({
-      title: afterReset ? "Choose a new passcode" : "Change passcode",
-      fields: [
-        afterReset ? { key: "n0", label: "Your recovery code worked. Set a new passcode for " + cp.name + ". Your recovery code keeps working.", type: "note" } : null,
-        { key: "p1", label: "New passcode (at least 6 characters)", type: "password", full: true },
-        { key: "p2", label: "Type it again", type: "password", full: true },
-        { key: "hint", label: "Hint (optional)", type: "text", value: cp.hint || "", full: true, max: 40 },
-        afterReset ? null : { key: "n", label: "Backups made with the old passcode still need the old passcode, or your recovery code, to restore.", type: "note" }
-      ].filter(Boolean),
-      cancelLabel: afterReset ? "Later" : "Cancel", savedMsg: "",
-      onSave: function (v) {
-        if ((v.p1 || "").length < 6) return "Use at least 6 characters.";
-        if (v.p1 !== v.p2) return "The two passcodes don't match.";
-        if (v.hint && v.p1.toLowerCase().indexOf(v.hint.toLowerCase()) !== -1) return "The hint shouldn't contain the passcode.";
-        var k = keys[cp.id];
-        wrapRaw(k.raw, v.p1).then(function (w) {
-          k.wraps = Object.assign({}, k.wraps, { pass: w }); cp.hint = (v.hint || "").trim(); saveProfiles(); save();
-          toast(afterReset ? "New passcode set" : "Passcode changed");
-        });
-      }
-    });
-  }
   function afterUnlock() {
-    $("lkErr").textContent = ""; lastActive = Date.now();
+    $("lkErr").textContent = "";
     var nowD = new Date(); view.y = nowD.getFullYear(); view.m = nowD.getMonth();
     applyLock(); defaultDate(); renderRate(); updatePreview(); renderBackupNag();
     render(); if (!$("summaryView").hidden) { sYear = view.y; renderSummary(); }
     fetchRate(false);
   }
-  function lockNow(silent) {
-    var cp = currentProfile(); if (!cp.locked || !keys[cp.id]) return;
-    closeEditor(); save();
-    saveChain.then(function () { delete keys[cp.id]; state = blank(); applyLock(); if (!silent) toast("Locked"); });
-  }
   $("lkBtn").onclick = tryUnlock;
+  $("lkRestore").onclick = function () { $("restoreFile").click(); };
+  // Restoring into a profile that is still locked replaces the locked data and removes the lock
+  function clearLockForRestore() {
+    var cp = currentProfile();
+    if (!cp.locked) return true;
+    if (!confirm("Replace " + cp.name + "'s locked data with this backup? The locked data will be gone for good.")) return false;
+    cp.locked = false; delete cp.hint; saveProfiles(); return true;
+  }
   $("lkPass").addEventListener("keydown", function (e) { if (e.key === "Enter") tryUnlock(); });
   $("lkDelete").onclick = function () {
     var cp = currentProfile();
@@ -2080,55 +1940,6 @@ td.paid { color: var(--ink-soft); }
     applyLock(); if (!lockedView) { render(); renderBackupNag(); }
     toast(cp.name + " deleted");
   };
-
-  $("pLock").onclick = function () {
-    $("profileMenu").open = false;
-    var cp = currentProfile();
-    openEditor({
-      title: "Lock " + cp.name + "'s budget",
-      fields: [
-        { key: "p1", label: "Passcode (at least 6 characters)", type: "password", full: true },
-        { key: "p2", label: "Type it again", type: "password", full: true },
-        { key: "hint", label: "Hint (optional, shown on the lock screen)", type: "text", full: true, max: 40 },
-        { key: "ok", label: "I understand that without the passcode or the recovery code I'm about to get, the data can't be opened.", type: "checkbox", value: false },
-        { key: "n", label: "Your data will be encrypted on this device. Next you'll get a recovery code to save. It locks when you close the tracker, switch profile, or leave it for 10 minutes.", type: "note" }
-      ],
-      onSave: function (v) {
-        if ((v.p1 || "").length < 6) return "Use at least 6 characters. Longer is safer.";
-        if (v.p1 !== v.p2) return "The two passcodes don't match.";
-        if (!v.ok) return "Tick the box to confirm you understand.";
-        if (v.hint && v.p1.toLowerCase().indexOf(v.hint.toLowerCase()) !== -1) return "The hint shouldn't contain the passcode.";
-        createLock(v.p1).then(function (r) {
-          keys[cp.id] = r.k; cp.locked = true; cp.hint = (v.hint || "").trim(); saveProfiles(); save();
-          lastActive = Date.now(); renderProfiles(); showRecoveryCode(r.rec, true);
-        });
-      },
-      savedMsg: ""
-    });
-  };
-  $("pChangePass").onclick = function () { $("profileMenu").open = false; askNewPasscode(false); };
-  $("pRecovery").onclick = function () {
-    $("profileMenu").open = false;
-    var has = keys[profiles.current] && keys[profiles.current].wraps.rec;
-    if (has && !confirm("Make a new recovery code? The old one will stop working.")) return;
-    newRecovery();
-  };
-  $("pUnlockOff").onclick = function () {
-    var cp = currentProfile();
-    if (!confirm("Remove the lock from " + cp.name + "? The data will be stored unencrypted on this device again.")) return;
-    saveChain.then(function () {
-      cp.locked = false; delete cp.hint; delete keys[cp.id]; saveProfiles(); save(); renderProfiles();
-      $("profileMenu").open = false; toast("Lock removed");
-    });
-  };
-  $("pLockNow").onclick = function () { $("profileMenu").open = false; lockNow(); };
-
-  // Auto-lock after 10 minutes without activity (also checked when you come back to the tab)
-  var lastActive = Date.now(), IDLE = 10 * 60 * 1000;
-  ["pointerdown", "keydown", "touchstart"].forEach(function (ev) { document.addEventListener(ev, function () { lastActive = Date.now(); }, { passive: true }); });
-  function idleCheck() { if (Date.now() - lastActive > IDLE) lockNow(true); }
-  setInterval(idleCheck, 30000);
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) idleCheck(); });
 
   // ---------- Profiles ----------
   var P_COLORS = ["#2F6B4F", "#8E4D6E", "#3C6E91", "#B0613A", "#6A5ACD", "#3F8C8C", "#9C6B3E"];
@@ -2144,11 +1955,7 @@ td.paid { color: var(--ink-soft); }
         (p.id === cp.id ? "<small>Open</small>" : "") + "</button>";
     }).join("");
     $("pDelete").hidden = profiles.list.length < 2;
-    var lockedOut = cp.locked && !keys[cp.id];
-    $("pActions").hidden = lockedOut; $("pLockRow").hidden = lockedOut;
-    $("pLock").hidden = !!cp.locked; $("pLockNow").hidden = !cp.locked; $("pChangePass").hidden = !cp.locked; $("pUnlockOff").hidden = !cp.locked;
-    $("pRecovery").hidden = !(cp.locked && keys[cp.id]);
-    $("pRecovery").textContent = keys[cp.id] && keys[cp.id].wraps && keys[cp.id].wraps.rec ? "New recovery code" : "Create recovery code";
+    $("pActions").hidden = !!cp.locked;
     $("pPayName").textContent = cp.name;
     $("pBackupInfo").textContent = state.lastBackup ? "Last backup " + agoText(state.lastBackup) : "Not backed up yet";
     $("pPayday").value = state.payday || "";
@@ -2157,8 +1964,7 @@ td.paid { color: var(--ink-soft); }
   function switchProfile(id) {
     if (id === profiles.current) { $("profileMenu").open = false; return; }
     save();
-    var sharedRate = state.rate, leaving = profiles.current;
-    if (keys[leaving]) { var lk = leaving; saveChain.then(function () { delete keys[lk]; }); }
+    var sharedRate = state.rate;
     profiles.current = id; saveProfiles();
     KEY = keyFor(id);
     state = migrate(load());
