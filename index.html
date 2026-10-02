@@ -212,6 +212,8 @@ td.inc { color: var(--good); }
 .kv span:first-child { color: var(--ink-soft); }
 .kv span:last-child { font-variant-numeric: tabular-nums; font-weight: 500; }
 td.neg { color: var(--over); }
+.pay-tag.carry { color: var(--brass); }
+tr.carried-out td { opacity: .6; }
 .cc-group { margin-bottom: 14px; }
 .cc-group:last-child { margin-bottom: 0; }
 .cc-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 14px; color: var(--ink-soft); padding-bottom: 6px; border-bottom: 1px solid var(--line); }
@@ -332,6 +334,10 @@ tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); f
   .bill .edit-btn { grid-column: 3; grid-row: 2; justify-self: end; }
 }
 .add-bill { margin-top: 14px; }
+.all-bills { margin-top: 4px; }
+.all-bills > summary { cursor: pointer; font-weight: 500; padding: 6px 0; }
+.all-bills > summary span { font-weight: 400; color: var(--ink-soft); font-size: 14px; margin-left: 6px; }
+.bills-sum:empty { display: none; }
 .not-due { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 12px 0 2px; font-size: 14px; color: var(--ink-soft); border-top: 1px solid var(--line); }
 .nd-item { color: var(--ink); }
 .nd-item small { color: var(--ink-soft); }
@@ -758,6 +764,11 @@ td.paid { color: var(--ink-soft); }
   }
   function updatePreview() {
     var amt = parseFloat($("amt").value);
+    if (txType === "income") {
+      var dv = $("date").value, cf = dv ? defaultIncomeMonth(dv) : null;
+      $("preview").textContent = cf && cf !== dv.slice(0, 7) ? "Paid around payday, so this counts towards " + ymLabel(cf) + "'s budget. You can change this later with Edit." : "";
+      return;
+    }
     if ($("cur").value !== "PHP") { $("preview").textContent = ""; return; }
     if (!state.rate) { $("preview").textContent = "Needs an exchange rate to convert to GBP."; return; }
     $("preview").textContent = amt > 0 ? peso(amt) + " ≈ " + money(amt * state.rate.value) + " at today's rate"
@@ -997,8 +1008,7 @@ td.paid { color: var(--ink-soft); }
       }
       var c = catById(b.category), pi = payInfo(b.pay), f = freqOf(b);
       var meta = "Due " + o.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
-        (f !== "monthly" ? " · " + freqLabel(b).toLowerCase() + " (≈ " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + "/month)" : "") +
-        (c ? " · " + esc(catLabel(c.id)) : "") + (pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : pi.kind === "gone" ? " · removed account" : "") +
+        (pi.kind === "bank" ? " · " + esc(pi.name) : pi.kind === "card" ? " · " + esc(pi.name) + " card" : pi.kind === "gone" ? " · removed account" : "") +
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
       var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : b.amount, idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
@@ -1013,17 +1023,23 @@ td.paid { color: var(--ink-soft); }
       $("bills").innerHTML += '<div class="not-due"><span>Not due in ' + label + ":</span> " + notDue.map(function (b) {
         var nx = nextOccurrence(b, mTo);
         return '<span class="nd-item">' + esc(b.name) + " <small>" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) +
-          " " + freqLabel(b).toLowerCase() + " (≈ " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + "/month)" +
           (nx ? " · next " + nx.date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: nx.date.getFullYear() !== y ? "numeric" : undefined }) : " · set a due date") +
           '</small> <button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></span>';
       }).join("") + "</div>";
     }
     var totalN = rows.length;
-    if (renderPayday()) { $("billsSum").innerHTML = "<b>" + paidN + " of " + totalN + "</b> paid for " + label; return; }
+    if (renderPayday()) {
+      // The payday box is the checklist; the full month list folds away underneath
+      $("bills").innerHTML = '<details class="all-bills"' + (allBillsOpen ? " open" : "") + '><summary>All bills in ' + label +
+        " <span>" + paidN + " of " + totalN + " paid</span></summary>" + $("bills").innerHTML + "</details>";
+      $("billsSum").innerHTML = ""; return;
+    }
     $("billsSum").innerHTML = "<b>" + paidN + " of " + totalN + "</b> paid" +
       (owing > 0 ? " · <b>" + money(owing) + "</b> still to pay" : totalN && paidN === totalN ? " · all done for " + label : "");
   }
 
+  var allBillsOpen = false;
+  document.addEventListener("toggle", function (e) { if (e.target.classList && e.target.classList.contains("all-bills")) allBillsOpen = e.target.open; }, true);
   function toggleBill(b, checked, key, fromPayday) {
     var existing = occPayment(b, key);
     if (!checked) {
@@ -1049,18 +1065,33 @@ td.paid { color: var(--ink-soft); }
   }
 
   function monthTx() { var k = monthKey(); return state.tx.filter(function (t) { return t.date.slice(0, 7) === k; }); }
+  // Income carry-over: pay that lands on (or up to 3 days before) a late-month payday counts towards the next month.
+  function nextYm(ym) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) + 1; if (m > 12) { m = 1; y++; } return y + "-" + pad(m); }
+  function ymLabel(ym, opt) { return new Date(+ym.slice(0, 4), +ym.slice(5, 7) - 1, 1).toLocaleDateString(undefined, opt || { month: "long" }); }
+  function defaultIncomeMonth(date) {
+    var ym = date.slice(0, 7);
+    if (!state.payday) return ym;
+    var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1, pdd = Math.min(state.payday, daysInMonth(y, m));
+    return pdd >= 15 && +date.slice(8, 10) >= pdd - 3 ? nextYm(ym) : ym;
+  }
+  function countsFor(t) { return t.type !== "income" ? t.date.slice(0, 7) : (t.forMonth || defaultIncomeMonth(t.date)); }
+  // What the month view shows: everything dated this month, plus income carried in from the month before
+  function monthView() {
+    var k = monthKey();
+    return state.tx.filter(function (t) { return t.date.slice(0, 7) === k || (t.type === "income" && countsFor(t) === k); });
+  }
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2200); }
 
   function render() {
     var label = new Date(view.y, view.m, 1).toLocaleDateString(undefined, { month: "long", year: "numeric" });
     $("monthLabel").textContent = label;
 
-    var txs = monthTx();
+    var txs = monthView(), mk0 = monthKey();
     var income = 0, spent = 0, byCat = {}, phpSpent = 0, phpSpentGbp = 0;
     txs.forEach(function (t) {
       if (t.type === "expense" && t.cur === "PHP") { phpSpent += t.orig; phpSpentGbp += t.amount; }
       if (t.type === "cardpay") return;
-      if (t.type === "income") income += t.amount;
+      if (t.type === "income") { if (countsFor(t) === mk0) income += t.amount; }
       else { spent += t.amount; byCat[t.category] = (byCat[t.category] || 0) + t.amount; }
     });
     var totalBudget = mainCats().reduce(function (s, c) { return s + (c.budget || 0); }, 0);
@@ -1146,7 +1177,9 @@ td.paid { color: var(--ink-soft); }
         sorted.map(function (t) {
           var c = catById(t.category), card = cardById(t.pay || t.card);
           var cardName = card ? card.name : "Removed card";
-          var catCell = t.type === "income" ? "Income"
+          var cf = t.type === "income" ? countsFor(t) : null;
+          var catCell = t.type === "income" ? "Income" + (cf !== t.date.slice(0, 7)
+              ? '<span class="pay-tag carry">' + (cf === mk0 ? "Carried over from " + ymLabel(t.date.slice(0, 7), { month: "short" }) : "Counts for " + ymLabel(cf)) + "</span>" : "")
             : t.type === "cardpay" ? '<span class="cat-tag"><span class="dot" style="background:' + (card ? card.color : "#999") + '"></span>Paid ' + esc(cardName) + "</span>"
             : '<span class="cat-tag"><span class="dot" style="background:' + catColor(t.category) + '"></span>' + esc(catLabel(t.category)) + "</span>" +
               (function () { var pi = payInfo(t.pay); return pi.kind === "cash" ? "" : '<span class="pay-tag">' + (pi.kind === "bank" ? "From " : pi.kind === "card" ? "On " : "") + esc(pi.name) + "</span>"; })();
@@ -1156,7 +1189,8 @@ td.paid { color: var(--ink-soft); }
             return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + '</td><td class="num paid">' + peso(t.orig) + "</td>" +
               '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit transaction">Edit</button></td></tr>';
           }
-          return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + "</td>" +
+          var dim = t.type === "income" && cf !== mk0;
+          return "<tr" + (dim ? ' class="carried-out"' : "") + "><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + "</td>" +
             '<td class="num' + (t.type === "income" ? " inc" : t.type === "cardpay" ? " paid" : "") + '">' + sign + money(t.amount) +
             (t.cur === "PHP" ? '<span class="orig">' + peso(t.orig) + " @ £1 = ₱" + (1 / t.rate).toFixed(2) + "</span>" : "") + "</td>" +
             '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit transaction">Edit</button></td></tr>';
@@ -1167,6 +1201,7 @@ td.paid { color: var(--ink-soft); }
   }
 
   function setType(type) {
+    setTimeout(updatePreview, 0);
     txType = type;
     document.querySelectorAll(".seg button").forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.type === type ? "true" : "false"); });
     $("catWrap").style.display = type === "income" ? "none" : "";
@@ -1282,6 +1317,7 @@ td.paid { color: var(--ink-soft); }
   $("newCat").addEventListener("keydown", function (e) { if (e.key === "Enter") $("addCat").click(); });
 
   $("amt").addEventListener("input", updatePreview);
+  $("date").addEventListener("change", updatePreview);
   $("cur").onchange = updatePreview;
   $("refreshRate").onclick = function () { fetchRate(true); };
   $("rateEdit").onclick = function () {
@@ -1314,13 +1350,13 @@ td.paid { color: var(--ink-soft); }
   function csvCell(v) { v = v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
 
   $("exportCsv").onclick = function () {
-    var rows = [["Date", "Type", "Category", "Paid with", "Note", "Original amount", "Currency", "Rate (GBP to PHP)", "Amount (GBP)"]];
-    monthTx().sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
+    var rows = [["Date", "Type", "Category", "Paid with", "Note", "Original amount", "Currency", "Rate (GBP to PHP)", "Amount (GBP)", "Counts for"]];
+    monthView().sort(function (a, b) { return a.date.localeCompare(b.date); }).forEach(function (t) {
       var c = catById(t.category), sign = t.type === "expense" ? -1 : 1, cd = cardById(t.pay || t.card);
       var catName = t.type === "income" ? "Income" : t.type === "cardpay" ? "Card payment" : catLabel(t.category).replace(" › ", " > ");
       var payName = t.type === "income" ? "" : t.type === "cardpay" ? (cd ? cd.name : "Removed card") : payInfo(t.pay).name;
       rows.push([t.date, t.type === "cardpay" ? "card payment" : t.type, catName, payName, t.note,
-        sign * t.orig, t.cur, t.cur === "PHP" ? +(1 / t.rate).toFixed(4) : 1, sign * t.amount]);
+        sign * t.orig, t.cur, t.cur === "PHP" ? +(1 / t.rate).toFixed(4) : 1, sign * t.amount, countsFor(t)]);
     });
     download("budget-" + monthKey() + ".csv", rows.map(function (r) { return r.map(csvCell).join(","); }).join("\n"), "text/csv");
   };
@@ -1386,11 +1422,15 @@ td.paid { color: var(--ink-soft); }
     for (var i = 0; i < 12; i++) months.push({ income: 0, spent: 0, php: 0, phpGbp: 0, count: 0 });
     var cats = {}, php = 0, phpGbp = 0;
     state.tx.forEach(function (t) {
+      if (t.type === "income") {
+        var cf = countsFor(t);
+        if (+cf.slice(0, 4) !== y) return;
+        var mi = months[+cf.slice(5, 7) - 1]; mi.count++; mi.income += t.amount; return;
+      }
       if (+t.date.slice(0, 4) !== y) return;
       var m = months[+t.date.slice(5, 7) - 1];
       m.count++;
       if (t.type === "cardpay") return;
-      if (t.type === "income") { m.income += t.amount; return; }
       m.spent += t.amount;
       cats[t.category] = (cats[t.category] || 0) + t.amount;
       if (t.cur === "PHP") { m.php += t.orig; m.phpGbp += t.amount; php += t.orig; phpGbp += t.amount; }
@@ -1402,7 +1442,9 @@ td.paid { color: var(--ink-soft); }
     $("yearLabel").textContent = sYear;
     var d = yearData(sYear);
     var income = 0, spent = 0, active = 0;
-    d.months.forEach(function (m) { income += m.income; spent += m.spent; if (m.count) active++; });
+    // "active" = months with spending, so averages and budget comparisons aren't diluted by income-only months
+    var logged = 0;
+    d.months.forEach(function (m) { income += m.income; spent += m.spent; if (m.spent > 0) active++; if (m.count) logged++; });
     var net = income - spent;
 
     if (income > 0) {
@@ -1424,7 +1466,7 @@ td.paid { color: var(--ink-soft); }
     var W = 720, H = 240, top = 16, bottom = 28, left = 8, colW = (W - left * 2) / 12;
     var max = 0;
     d.months.forEach(function (m) { max = Math.max(max, m.income, m.spent); });
-    if (!active) {
+    if (!logged) {
       $("sChart").innerHTML = '<p class="empty">No transactions in ' + sYear + ' yet.</p>';
     } else {
       var plotH = H - top - bottom, bw = Math.min(18, colW / 3.2), svg = "";
@@ -1508,7 +1550,7 @@ td.paid { color: var(--ink-soft); }
     }
 
     renderDebt(d);
-    $("sum-schart").textContent = active ? active + (active === 1 ? " month" : " months") + " logged" : "";
+    $("sum-schart").textContent = logged ? logged + (logged === 1 ? " month" : " months") + " logged" : "";
     var mt = {}; Object.keys(d.cats).forEach(function (id) { var c = catById(id), k = c ? mainOf(c).id : "_r"; mt[k] = (mt[k] || 0) + d.cats[id]; });
     var top = Object.keys(mt).sort(function (a, b) { return mt[b] - mt[a]; })[0];
     $("sum-scats").textContent = top ? "Most on " + (catById(top) ? catById(top).name : "removed category") : "";
@@ -1880,6 +1922,10 @@ td.paid { color: var(--ink-soft); }
         { key: "cat", label: "Category", type: "select", value: t.category, options: catOptions(), showIf: function (v) { return v.type === "expense"; } },
         { key: "pay", label: "Paid with", type: "select", value: t.pay || "cash", options: payOptions(), showIf: function (v) { return v.type === "expense"; } },
         { key: "note", label: "Note", type: "text", value: t.note || "", full: true, max: 80 },
+        { key: "forMonth", label: "Counts towards", type: "select", value: countsFor(t), full: true,
+          options: [[t.date.slice(0, 7), ymLabel(t.date.slice(0, 7), { month: "long", year: "numeric" }) + " (when it was paid)"],
+                    [nextYm(t.date.slice(0, 7)), ymLabel(nextYm(t.date.slice(0, 7)), { month: "long", year: "numeric" }) + " (carry over)"]],
+          showIf: function (v) { return v.type === "income"; } },
         bill ? { key: "billnote", label: "This is the " + bill.name + " payment, so deleting it marks the bill as not paid.", type: "note" } : null
       ].filter(Boolean),
       onSave: function (v) {
@@ -1892,7 +1938,12 @@ td.paid { color: var(--ink-soft); }
         if (v.type === "expense") {
           t.category = v.cat || (state.categories[0] && state.categories[0].id) || null;
           t.pay = v.pay; t.cardAmt = cardAmtFor(v.pay, v.cur, t.orig, t.amount);
-        } else { t.category = null; t.pay = undefined; t.cardAmt = undefined; }
+        } else {
+          t.category = null; t.pay = undefined; t.cardAmt = undefined;
+          var dm = v.date.slice(0, 7), fm = v.forMonth;
+          if (fm !== dm && fm !== nextYm(dm)) fm = defaultIncomeMonth(v.date);
+          if (fm === defaultIncomeMonth(v.date)) delete t.forMonth; else t.forMonth = fm;
+        }
       },
       onDelete: function () { state.tx = state.tx.filter(function (x) { return x !== t; }); },
       deleteLabel: "Delete", deletedMsg: "Transaction deleted"
@@ -1901,9 +1952,12 @@ td.paid { color: var(--ink-soft); }
 
   function editBill(id) {
     var b = billById(id); if (!b) return;
+    var bc = catById(b.category), bsum = freqLabel(b) + (freqOf(b) !== "monthly" ? " · about " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + " a month" : "") +
+      (bc ? " · " + catLabel(bc.id) : "");
     openEditor({
       title: "Edit bill",
       fields: [
+        { key: "sum", label: bsum, type: "note" },
         { key: "name", label: "Bill name", type: "text", value: b.name, full: true, max: 40 },
         { key: "amt", label: "Usual amount", type: "number", value: b.amount },
         { key: "cur", label: "Currency", type: "select", value: b.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
@@ -1925,6 +1979,12 @@ td.paid { color: var(--ink-soft); }
         } else {
           if (!v.start) return "Pick a due date so the schedule can be worked out.";
           b.start = v.start; b.due = parseDay(v.start).getDate();
+        }
+        if (v.cat !== b.category) {
+          var past = state.tx.filter(function (t) { return t.bill === b.id && t.type === "expense" && t.category !== v.cat; });
+          if (past.length && confirm("Also move " + past.length + (past.length === 1 ? " past payment" : " past payments") + " of " + b.name + " to " + catLabel(v.cat) + "?\n\nChoose Cancel to keep past payments where they are.")) {
+            past.forEach(function (t) { t.category = v.cat; });
+          }
         }
         b.freq = v.freq; b.name = v.name.trim(); b.amount = r2(v.amt); b.cur = v.cur; b.category = v.cat; b.pay = v.pay;
       },
