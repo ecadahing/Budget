@@ -91,6 +91,31 @@ header.top { display: flex; justify-content: space-between; align-items: center;
 .err { color: var(--over); font-size: 14px; min-height: 1.4em; margin: 8px 0 0; }
 .preview { font-size: 14px; color: var(--ink-soft); min-height: 1.4em; margin: 10px 0 0; }
 .rate { margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 14px; }
+.rate-hist { margin-top: 10px; }
+.rate-hist summary { cursor: pointer; font-size: 14px; color: var(--ink-soft); }
+.rh-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+.rh-top select { background: var(--field); border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px; font-size: 14px; }
+.rh-up { color: var(--good); font-weight: 600; font-size: 14px; }
+.rh-down { color: var(--over); font-weight: 600; font-size: 14px; }
+.rh-flat { color: var(--ink-soft); font-size: 14px; }
+.rh-chart svg { display: block; width: 100%; height: auto; touch-action: none; }
+.rh-read { font-size: 13px; color: var(--ink-soft); min-height: 1.4em; font-variant-numeric: tabular-nums; }
+.rh-list { max-height: 190px; overflow-y: auto; border-top: 1px solid var(--line); margin-top: 6px; font-size: 14px; }
+.rh-row { display: grid; grid-template-columns: 1fr 70px 70px 50px; gap: 8px; padding: 6px 2px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; align-items: baseline; }
+.rh-row > :not(:first-child) { text-align: right; }
+.rh-row.head { position: sticky; top: 0; background: var(--card); font-size: 12px; color: var(--ink-soft); }
+.rh-row .wv { color: var(--brass); font-weight: 600; }
+.rh-row .na { color: var(--line); }
+.rh-legend { display: flex; gap: 14px; font-size: 12px; color: var(--ink-soft); margin-bottom: 2px; }
+.rh-legend i { display: inline-block; vertical-align: middle; margin-right: 5px; }
+.rh-legend .ln { width: 16px; height: 2px; background: var(--ink-soft); }
+.rh-legend .dt { width: 8px; height: 8px; border-radius: 50%; background: var(--brass); }
+.rh-cmp { font-size: 13px; margin: 4px 0 0; color: var(--ink); }
+.rh-add { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--ink-soft); }
+.rh-add input { background: var(--field); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; font-size: 14px; }
+.rh-add input[type="number"] { width: 92px; }
+.rh-add label { display: flex; align-items: center; gap: 4px; }
+.rh-tag { font-size: 11px; font-weight: 600; color: var(--brass); margin-left: 6px; }
 .rate-line { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
 .rate-line span { color: var(--ink-soft); font-size: 13px; }
 .rate-line .small-btn { margin-left: auto; }
@@ -301,6 +326,9 @@ tr.grp td { background: var(--paper); font-size: 13px; color: var(--ink-soft); f
   .bill .edit-btn { grid-column: 3; grid-row: 2; justify-self: end; }
 }
 .add-bill { margin-top: 14px; }
+.not-due { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; padding: 12px 0 2px; font-size: 14px; color: var(--ink-soft); border-top: 1px solid var(--line); }
+.nd-item { color: var(--ink); }
+.nd-item small { color: var(--ink-soft); }
 .bank-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .bank-row span.c { color: var(--ink-soft); font-size: 13px; }
 .bank-row .edit-btn { margin-left: auto; }
@@ -424,6 +452,30 @@ td.paid { color: var(--ink-soft); }
           <label>£1 = ₱<input id="wiseRate" type="number" step="0.0001" min="0" inputmode="decimal" placeholder="75.50"></label>
           <button class="ghost" id="saveWise">Save rate</button>
         </div>
+        <details class="rate-hist" id="rateHist">
+          <summary>Past rates</summary>
+          <div class="rh-top">
+            <select id="rhRange" aria-label="Period">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="365">Last year</option>
+            </select>
+            <span id="rhChange"></span>
+          </div>
+          <div class="rh-legend"><span><i class="ln"></i>Mid-market</span><span><i class="dt"></i>Your Wise rate</span></div>
+          <div class="rh-chart" id="rhChart"></div>
+          <div class="rh-read" id="rhRead">&nbsp;</div>
+          <p class="rh-cmp" id="rhCmp"></p>
+          <div class="rh-list" id="rhList"></div>
+          <div class="rh-add">
+            <span>Add a Wise rate</span>
+            <input type="date" id="rhAddDate" aria-label="Date of the Wise rate">
+            <label>£1 = ₱<input type="number" id="rhAddRate" step="0.0001" min="0" inputmode="decimal" placeholder="75.40" aria-label="Wise rate in pesos per pound"></label>
+            <button class="small-btn" id="rhAddBtn">Add</button>
+          </div>
+          <p class="hint" id="rhNote">Daily mid-market rates from the European Central Bank, the same kind of rate Wise uses, so Wise will be very close. Wise converts at the mid-market rate and charges a fee separately, so differences mostly come from the time of day. Higher means more pesos for each £.</p>
+        </details>
       </div>
     </section>
 
@@ -442,12 +494,14 @@ td.paid { color: var(--ink-soft); }
       <p class="bills-sum" id="billsSum"></p>
       <div id="bills"></div>
       <details class="add-bill">
-        <summary>Add a monthly bill</summary>
+        <summary>Add a bill</summary>
         <div class="bill-form">
           <label>Bill name<input id="bName" type="text" maxlength="40" placeholder="e.g. Electricity"></label>
           <label>Usual amount<input id="bAmt" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0.00"></label>
           <label>Currency<select id="bCur"><option value="GBP">£ GBP</option><option value="PHP">₱ PHP</option></select></label>
-          <label>Due day<input id="bDue" type="number" min="1" max="31" step="1" inputmode="numeric" placeholder="1–31"></label>
+          <label>How often<select id="bFreq"></select></label>
+          <label id="bDueWrap">Due day each month<input id="bDue" type="number" min="1" max="31" step="1" inputmode="numeric" placeholder="1–31"></label>
+          <label id="bStartWrap" hidden>Next due date<input id="bStart" type="date"></label>
           <label>Category<select id="bCat"></select></label>
           <label>Paid with<select id="bPay"></select></label>
         </div>
@@ -680,6 +734,7 @@ td.paid { color: var(--ink-soft); }
           var p = s.pick(d);
           if (!(p.v > 0)) throw new Error();
           state.rate = { value: p.v, source: s.name, date: p.date, fetchedAt: Date.now(), manual: false };
+          logRate(1 / p.v, "live");
           save(); fetching = false; renderRate(); updatePreview();
           if (force) toast("Live rate updated");
         })
@@ -763,7 +818,60 @@ td.paid { color: var(--ink-soft); }
   }
   var openPay = null;
   function billById(id) { return state.bills.find(function (b) { return b.id === id; }); }
-  function billPayment(bill, ym) { return state.tx.find(function (t) { return t.bill === bill.id && (t.billMonth || t.date.slice(0, 7)) === ym; }); }
+  // ---------- Bill schedules ----------
+  var FREQS = [["monthly", "Monthly"], ["weekly", "Weekly"], ["2weekly", "Every 2 weeks"], ["4weekly", "Every 4 weeks"],
+    ["quarterly", "Every 3 months"], ["6monthly", "Every 6 months"], ["yearly", "Yearly"]];
+  var FREQ_DAYS = { weekly: 7, "2weekly": 14, "4weekly": 28 }, FREQ_MONTHS = { quarterly: 3, "6monthly": 6, yearly: 12 };
+  var PER_MONTH = { monthly: 1, weekly: 52 / 12, "2weekly": 26 / 12, "4weekly": 13 / 12, quarterly: 1 / 3, "6monthly": 1 / 6, yearly: 1 / 12 };
+  function freqOf(b) { return b.freq && PER_MONTH[b.freq] ? b.freq : "monthly"; }
+  function freqLabel(b) { var f = FREQS.find(function (x) { return x[0] === freqOf(b); }); return f ? f[1] : "Monthly"; }
+  function perMonth(b) { return b.amount * PER_MONTH[freqOf(b)]; }
+  function parseDay(str) { var p = String(str).split("-"); return new Date(+p[0], +p[1] - 1, +p[2]); }
+  function dayKey(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function addMonthsClamped(base, n, day) {
+    var y = base.getFullYear(), m = base.getMonth() + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    return new Date(y, m, Math.min(day, daysInMonth(y, m)));
+  }
+  // Each due date of a bill from `from` (inclusive) to `to` (exclusive) -> [{ date, key }]
+  // Monthly bills use the month ("2026-10") as their key, so older ticks keep working.
+  function occurrences(b, from, to) {
+    var out = [], f = freqOf(b);
+    if (f === "monthly") {
+      var cur = new Date(from.getFullYear(), from.getMonth(), 1);
+      while (cur < to) {
+        var d = new Date(cur.getFullYear(), cur.getMonth(), Math.min(b.due || 1, daysInMonth(cur.getFullYear(), cur.getMonth())));
+        if (d >= from && d < to) out.push({ date: d, key: ymOf(d) });
+        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
+      }
+      return out;
+    }
+    if (!b.start) return out;
+    var a = parseDay(b.start);
+    if (FREQ_DAYS[f]) {
+      var step = FREQ_DAYS[f], n = from > a ? Math.ceil(Math.round((from - a) / 86400000) / step) : 0;
+      var x = new Date(a.getFullYear(), a.getMonth(), a.getDate() + n * step);
+      while (x < to) { if (x >= from) out.push({ date: x, key: dayKey(x) }); x = new Date(x.getFullYear(), x.getMonth(), x.getDate() + step); }
+      return out;
+    }
+    var ms = FREQ_MONTHS[f];
+    for (var k = 0; k < 600; k++) {
+      var dd = addMonthsClamped(a, k * ms, a.getDate());
+      if (dd >= to) break;
+      if (dd >= from) out.push({ date: dd, key: dayKey(dd) });
+    }
+    return out;
+  }
+  function nextOccurrence(b, from) {
+    var o = occurrences(b, from, new Date(from.getFullYear() + 2, from.getMonth(), from.getDate()));
+    return o.length ? o[0] : null;
+  }
+  function occPayment(bill, key) {
+    return state.tx.find(function (t) {
+      if (t.bill !== bill.id) return false;
+      if (t.billOcc) return t.billOcc === key;
+      return (t.billMonth || t.date.slice(0, 7)) === key;
+    });
+  }
   function ymOf(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1); }
   function nextPayday(from) {
     var P = state.payday, y = from.getFullYear(), m = from.getMonth();
@@ -777,16 +885,12 @@ td.paid { color: var(--ink-soft); }
   // Unpaid bills from today until the next payday, plus anything overdue this month
   function dueBeforePayday() {
     var t0 = new Date(); t0.setHours(0, 0, 0, 0);
-    var pd = nextPayday(t0), items = [];
-    [0, 1].forEach(function (k) {
-      var y = t0.getFullYear(), m = t0.getMonth() + k; if (m > 11) { m -= 12; y++; }
-      var ym = y + "-" + pad(m + 1);
-      state.bills.forEach(function (b) {
-        var due = new Date(y, m, Math.min(b.due, daysInMonth(y, m)));
-        if (due >= pd) return;
-        if (k === 1 && due < t0) return;
-        if (billPayment(b, ym) || billFinished(b)) return;
-        items.push({ bill: b, ym: ym, y: y, m: m, due: due, late: due < t0 });
+    var pd = nextPayday(t0), items = [], monthStart = new Date(t0.getFullYear(), t0.getMonth(), 1);
+    state.bills.forEach(function (b) {
+      if (billFinished(b)) return;
+      occurrences(b, monthStart, pd).forEach(function (o) {
+        if (occPayment(b, o.key)) return;
+        items.push({ bill: b, key: o.key, due: o.date, late: o.date < t0 });
       });
     });
     items.sort(function (a, b) { return a.due - b.due; });
@@ -823,7 +927,7 @@ td.paid { color: var(--ink-soft); }
       (r.items.length ? '<div class="pd-total">' + money(r.total) + "</div>" : "") + "</div>" +
       (r.items.length ? '<ul class="pd-list">' + r.items.map(function (i) {
         var b = i.bill;
-        return '<li><input type="checkbox" class="bill-check" data-pdpay="' + b.id + '" data-ym="' + i.ym + '" aria-label="Mark ' + esc(b.name) + ' as paid">' +
+        return '<li><input type="checkbox" class="bill-check" data-pdpay="' + b.id + '" data-occ="' + i.key + '" aria-label="Mark ' + esc(b.name) + ' as paid">' +
           "<div>" + esc(b.name) + ' <span class="' + (i.late ? "late" : "bill-meta") + '">' + (i.late ? "overdue, was due " : "due ") + fmt(i.due) +
           (function () { var pi = payInfo(b.pay); return pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : ""; })() + "</span></div>" +
           '<span class="amt">' + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + "</span></li>";
@@ -849,55 +953,72 @@ td.paid { color: var(--ink-soft); }
       $("bills").innerHTML = '<p class="empty">Add your regular bills below. Each month you can tick them off as you pay them.</p>';
       return;
     }
-    var paidN = 0, owing = 0;
-    var list = state.bills.slice().sort(function (a, b) { return a.due - b.due; });
-    $("bills").innerHTML = list.map(function (b) {
-      var p = billPayment(b, ym), day = Math.min(b.due, dim);
-      var dueDate = new Date(y, m, day), diff = Math.round((dueDate - t0) / 86400000);
+    var paidN = 0, owing = 0, rows = [], notDue = [];
+    var mFrom = new Date(y, m, 1), mTo = new Date(y, m + 1, 1);
+    state.bills.forEach(function (b) {
+      var occ = occurrences(b, mFrom, mTo);
+      if (!occ.length) { notDue.push(b); return; }
+      occ.forEach(function (o) { rows.push({ b: b, o: o }); });
+    });
+    rows.sort(function (a, c) { return a.o.date - c.o.date || a.b.name.localeCompare(c.b.name); });
+    $("bills").innerHTML = rows.map(function (r) {
+      var b = r.b, o = r.o, p = occPayment(b, o.key), diff = Math.round((o.date - t0) / 86400000);
       var status, cls;
       if (p) { status = "Paid"; cls = "paid"; paidN++; }
       else if (billFinished(b)) { status = "Loan paid off"; cls = "paid"; paidN++; }
       else {
-        owing += b.cur === "PHP" ? (state.rate ? b.amount * state.rate.value : 0) : b.amount;
+        owing += billGbp(b, b.amount);
         if (diff < 0) { status = "Overdue"; cls = "late"; }
         else if (diff === 0) { status = "Due today"; cls = "soon"; }
         else if (diff <= 3) { status = "Due in " + diff + (diff === 1 ? " day" : " days"); cls = "soon"; }
         else { status = "Not paid yet"; cls = "due"; }
       }
-      var c = catById(b.category), pi = payInfo(b.pay);
-      var meta = "Due " + dueDate.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
+      var c = catById(b.category), pi = payInfo(b.pay), f = freqOf(b);
+      var meta = "Due " + o.date.toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
+        (f !== "monthly" ? " · " + freqLabel(b).toLowerCase() + " (≈ " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + "/month)" : "") +
         (c ? " · " + esc(c.name) : "") + (pi.kind === "bank" ? " · from " + esc(pi.name) : pi.kind === "card" ? " · on " + esc(pi.name) : pi.kind === "gone" ? " · removed account" : "") +
         (p ? " · paid " + new Date(p.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" }) : "");
-      var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : b.amount;
+      var shown = p ? (b.cur === "PHP" ? p.orig : p.amount) : b.amount, idk = b.id + "_" + o.key;
       return '<div class="bill' + (p ? " is-paid" : "") + '">' +
-        '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + ' as paid">' +
+        '<input type="checkbox" class="bill-check" data-billtoggle="' + b.id + '" data-occ="' + o.key + '"' + (p ? " checked" : "") + ' aria-label="Mark ' + esc(b.name) + " due " + o.date.toLocaleDateString() + ' as paid">' +
         '<div><div class="bill-name">' + esc(b.name) + '</div><div class="bill-meta">' + meta + "</div></div>" +
         '<span class="status ' + cls + '">' + status + "</span>" +
-        '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + b.id + '" value="' + shown.toFixed(2) + '"' + (p ? " disabled" : "") +
+        '<input class="bill-amt" type="number" step="0.01" min="0" inputmode="decimal" id="bamt-' + idk + '" value="' + shown.toFixed(2) + '"' + (p ? " disabled" : "") +
         ' aria-label="Amount for ' + esc(b.name) + ' in ' + b.cur + '" title="' + (b.cur === "PHP" ? "Pesos" : "Pounds") + '">' +
         '<button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></div>';
-    }).join("");
-    if (renderPayday()) { $("billsSum").innerHTML = "<b>" + paidN + " of " + state.bills.length + "</b> paid for " + label; return; }
-    $("billsSum").innerHTML = "<b>" + paidN + " of " + state.bills.length + "</b> paid" +
-      (owing > 0 ? " · <b>" + money(owing) + "</b> still to pay" : paidN === state.bills.length ? " · all done for " + label : "");
+    }).join("") || '<p class="empty">No bills due in ' + label + ".</p>";
+    if (notDue.length) {
+      $("bills").innerHTML += '<div class="not-due"><span>Not due in ' + label + ":</span> " + notDue.map(function (b) {
+        var nx = nextOccurrence(b, mTo);
+        return '<span class="nd-item">' + esc(b.name) + " <small>" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) +
+          " " + freqLabel(b).toLowerCase() + " (≈ " + (b.cur === "PHP" ? peso(perMonth(b)) : money(perMonth(b))) + "/month)" +
+          (nx ? " · next " + nx.date.toLocaleDateString(undefined, { day: "numeric", month: "short", year: nx.date.getFullYear() !== y ? "numeric" : undefined }) : " · set a due date") +
+          '</small> <button class="edit-btn" data-editbill="' + b.id + '" aria-label="Edit ' + esc(b.name) + '">Edit</button></span>';
+      }).join("") + "</div>";
+    }
+    var totalN = rows.length;
+    if (renderPayday()) { $("billsSum").innerHTML = "<b>" + paidN + " of " + totalN + "</b> paid for " + label; return; }
+    $("billsSum").innerHTML = "<b>" + paidN + " of " + totalN + "</b> paid" +
+      (owing > 0 ? " · <b>" + money(owing) + "</b> still to pay" : totalN && paidN === totalN ? " · all done for " + label : "");
   }
 
-  function toggleBill(b, checked, forYm) {
-    var ym = forYm || monthKey(), existing = billPayment(b, ym);
+  function toggleBill(b, checked, key, fromPayday) {
+    var existing = occPayment(b, key);
     if (!checked) {
       if (existing) state.tx = state.tx.filter(function (t) { return t !== existing; });
       save(); render(); toast(b.name + " marked as not paid"); return;
     }
     if (existing) return;
-    var amtEl = forYm ? null : $("bamt-" + b.id);
+    var amtEl = fromPayday ? null : $("bamt-" + b.id + "_" + key);
     var v = amtEl ? parseFloat(amtEl.value) : b.amount;
     if (!(v > 0)) { toast("Enter the amount for " + b.name); render(); return; }
     var rate = 1;
     if (b.cur === "PHP") { if (!state.rate) { toast("Needs an exchange rate first"); render(); return; } rate = state.rate.value; }
-    var td = today(), by = +ym.slice(0, 4), bm = +ym.slice(5, 7) - 1;
-    var date = ym >= td.slice(0, 7) ? td : ym + "-" + pad(Math.min(b.due, daysInMonth(by, bm)));
+    // The due date of this payment
+    var dueD = key.length === 7 ? new Date(+key.slice(0, 4), +key.slice(5, 7) - 1, Math.min(b.due || 1, daysInMonth(+key.slice(0, 4), +key.slice(5, 7) - 1))) : parseDay(key);
+    var td = today(), date = ymOf(dueD) >= td.slice(0, 7) ? td : dayKey(dueD);
     var orig = Math.round(v * 100) / 100;
-    state.tx.push({ id: uid(), type: "expense", bill: b.id, billMonth: ym, created: Date.now(), cur: b.cur, orig: orig, rate: rate,
+    state.tx.push({ id: uid(), type: "expense", bill: b.id, billOcc: key, billMonth: ymOf(dueD), created: Date.now(), cur: b.cur, orig: orig, rate: rate,
       amount: Math.round(orig * rate * 100) / 100, date: date,
       category: catById(b.category) ? b.category : (state.categories[0] ? state.categories[0].id : null),
       pay: b.pay && validPay(b.pay) ? b.pay : "cash",
@@ -1064,9 +1185,9 @@ td.paid { color: var(--ink-soft); }
 
   document.addEventListener("change", function (e) {
     if (e.target.dataset && e.target.dataset.pdpay) {
-      var pb = billById(e.target.dataset.pdpay); if (pb) toggleBill(pb, true, e.target.dataset.ym); return;
+      var pb = billById(e.target.dataset.pdpay); if (pb) toggleBill(pb, true, e.target.dataset.occ, true); return;
     }
-    if (e.target.dataset && e.target.dataset.billtoggle) { var bl = billById(e.target.dataset.billtoggle); if (bl) toggleBill(bl, e.target.checked); return; }
+    if (e.target.dataset && e.target.dataset.billtoggle) { var bl = billById(e.target.dataset.billtoggle); if (bl) toggleBill(bl, e.target.checked, e.target.dataset.occ); return; }
     var id = e.target.dataset && e.target.dataset.budget;
     if (id) { var c = catById(id); if (c) { c.budget = Math.max(0, parseFloat(e.target.value) || 0); save(); render(); } }
   });
@@ -1097,14 +1218,23 @@ td.paid { color: var(--ink-soft); }
     state.categories.push({ id: uid(), name: name, budget: 0, color: PALETTE[state.categories.length % PALETTE.length] });
     $("newCat").value = ""; save(); render(); toast("Category added");
   };
+  $("bFreq").innerHTML = FREQS.map(function (f) { return '<option value="' + f[0] + '">' + f[1] + "</option>"; }).join("");
+  $("bFreq").onchange = function () {
+    var monthly = this.value === "monthly";
+    $("bDueWrap").hidden = !monthly; $("bStartWrap").hidden = monthly;
+    if (!monthly && !$("bStart").value) $("bStart").value = today();
+  };
   $("addBill").onclick = function () {
-    var name = $("bName").value.trim(), amt = parseFloat($("bAmt").value), due = parseInt($("bDue").value, 10);
+    var name = $("bName").value.trim(), amt = parseFloat($("bAmt").value), due = parseInt($("bDue").value, 10), freq = $("bFreq").value, start = $("bStart").value;
     if (!name) { toast("Give the bill a name"); $("bName").focus(); return; }
     if (!(amt > 0)) { toast("Enter the usual amount"); $("bAmt").focus(); return; }
-    if (!(due >= 1 && due <= 31)) { toast("Due day must be 1 to 31"); $("bDue").focus(); return; }
-    state.bills.push({ id: uid(), name: name, amount: Math.round(amt * 100) / 100, cur: $("bCur").value, due: due,
-      category: $("bCat").value, pay: $("bPay").value });
-    $("bName").value = ""; $("bAmt").value = ""; $("bDue").value = "";
+    if (freq === "monthly" && !(due >= 1 && due <= 31)) { toast("Due day must be 1 to 31"); $("bDue").focus(); return; }
+    if (freq !== "monthly" && !start) { toast("Pick the next due date"); $("bStart").focus(); return; }
+    var nb = { id: uid(), name: name, amount: Math.round(amt * 100) / 100, cur: $("bCur").value, freq: freq,
+      due: freq === "monthly" ? due : parseDay(start).getDate(), category: $("bCat").value, pay: $("bPay").value };
+    if (freq !== "monthly") nb.start = start;
+    state.bills.push(nb);
+    $("bName").value = ""; $("bAmt").value = ""; $("bDue").value = ""; $("bStart").value = "";
     save(); render(); toast("Bill added");
   };
 
@@ -1136,6 +1266,7 @@ td.paid { color: var(--ink-soft); }
     if (!(p > 1)) { toast("Enter how many pesos £1 buys, e.g. 75.50"); return; }
     var v = 1 / p;
     state.rate = { value: v, source: "Wise", date: today(), fetchedAt: Date.now(), manual: true };
+    logRate(p, "wise"); if ($("rateHist").open) renderHistory();
     save(); renderRate(); updatePreview(); $("wiseRow").hidden = true; $("rateActions").hidden = true;
     $("rateEdit").textContent = "Edit"; $("rateEdit").setAttribute("aria-expanded", "false"); toast("Wise rate saved");
   };
@@ -1387,7 +1518,7 @@ td.paid { color: var(--ink-soft); }
     var now = isNew ? 0 : loanState(l).balance;
     var billOpts = [["", "Not linked to a bill"]].concat(state.bills.map(function (b) {
       var other = state.loans.find(function (x) { return x.billId === b.id && x !== l; });
-      return [b.id, b.name + " (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + ")" + (other ? " · linked to " + other.name : "")];
+      return [b.id, b.name + " (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) + ", " + freqLabel(b).toLowerCase() + ")" + (other ? " · linked to " + other.name : "")];
     }));
     openEditor({
       title: isNew ? "Add a loan or debt" : "Edit " + l.name,
@@ -1442,7 +1573,7 @@ td.paid { color: var(--ink-soft); }
     // Bills marked as debt in an older version, not yet set up as a loan
     state.bills.forEach(function (b) {
       if (!b.debt || linked[b.id]) return;
-      out.legacyTotal += billGbp(b, b.amount);
+      out.legacyTotal += billGbp(b, perMonth(b));
       out.legacy += '<div class="legacy"><p><b>' + esc(b.name) + "</b> (" + (b.cur === "PHP" ? peso(b.amount) : money(b.amount)) +
         " a month) is counted as a debt payment. Add it as a loan to track what's left to pay.</p>" +
         '<button class="small-btn" data-loanfrom="' + b.id + '">Add as a loan</button>' +
@@ -1572,11 +1703,12 @@ td.paid { color: var(--ink-soft); }
       : state.categories.length + (state.categories.length === 1 ? " category" : " categories");
     var bs = "";
     if (state.bills.length) {
-      var ym = monthKey(), paid = state.bills.filter(function (b) { return billPayment(b, ym); }).length;
+      var ym = monthKey(), mF = new Date(view.y, view.m, 1), mT = new Date(view.y, view.m + 1, 1), tot = 0, paid = 0;
+      state.bills.forEach(function (b) { occurrences(b, mF, mT).forEach(function (o) { tot++; if (occPayment(b, o.key)) paid++; }); });
       if (state.payday && ymOf(new Date()) === ym) {
         var r = dueBeforePayday();
         bs = r.items.length ? r.items.length + " due before payday · " + money(r.total) : "All covered until payday";
-      } else bs = paid + " of " + state.bills.length + " paid";
+      } else bs = paid + " of " + tot + " paid";
     }
     $("sum-bills").textContent = bs;
     var owed = state.cards.reduce(function (t, c) { return t + cardToGbp(c, cardStats(c, "").balance); }, 0);
@@ -1728,17 +1860,26 @@ td.paid { color: var(--ink-soft); }
         { key: "name", label: "Bill name", type: "text", value: b.name, full: true, max: 40 },
         { key: "amt", label: "Usual amount", type: "number", value: b.amount },
         { key: "cur", label: "Currency", type: "select", value: b.cur, options: [["GBP", "£ GBP"], ["PHP", "₱ PHP"]] },
-        { key: "due", label: "Due day (1–31)", type: "number", step: "1", value: b.due },
+        { key: "freq", label: "How often", type: "select", value: freqOf(b), options: FREQS },
+        { key: "due", label: "Due day each month (1–31)", type: "number", step: "1", value: b.due, showIf: function (v) { return v.freq === "monthly"; } },
+        { key: "start", label: "A due date (next or past)", type: "date", value: b.start || dayKey(nextOccurrence(b, new Date(new Date().setHours(0, 0, 0, 0))) ? nextOccurrence(b, new Date(new Date().setHours(0, 0, 0, 0))).date : new Date()),
+          showIf: function (v) { return v.freq !== "monthly"; } },
         { key: "cat", label: "Category", type: "select", value: b.category, options: catOptions() },
         { key: "pay", label: "Paid with", type: "select", value: b.pay || "cash", options: payOptions(), full: true },
-        { key: "n", label: "Changes apply from now on. Payments you've already ticked keep their original amounts. If this bill repays a loan, add the loan under Summary → Debts and link it to this bill.", type: "note" }
+        { key: "n", label: "Payments you've already ticked keep their amounts. Changing how often it's paid can move which dates show as due, so check the next few months after changing it. If this bill repays a loan, link it from Loans and debts.", type: "note" }
       ],
       onSave: function (v) {
         if (!v.name.trim()) return "Give the bill a name.";
         if (!(v.amt > 0)) return "Enter the usual amount.";
-        var due = Math.round(v.due);
-        if (!(due >= 1 && due <= 31)) return "Due day must be 1 to 31.";
-        b.name = v.name.trim(); b.amount = r2(v.amt); b.cur = v.cur; b.due = due; b.category = v.cat; b.pay = v.pay;
+        if (v.freq === "monthly") {
+          var due = Math.round(v.due);
+          if (!(due >= 1 && due <= 31)) return "Due day must be 1 to 31.";
+          b.due = due; delete b.start;
+        } else {
+          if (!v.start) return "Pick a due date so the schedule can be worked out.";
+          b.start = v.start; b.due = parseDay(v.start).getDate();
+        }
+        b.freq = v.freq; b.name = v.name.trim(); b.amount = r2(v.amt); b.cur = v.cur; b.category = v.cat; b.pay = v.pay;
       },
       onDelete: function () {
         state.loans.forEach(function (l) {
@@ -1989,6 +2130,138 @@ td.paid { color: var(--ink-soft); }
       savedMsg: "Payday saved"
     });
   };
+
+  // ---------- Rate history ----------
+  // Pesos per £1. Your own saved rates are kept in rateLog; daily history comes from the ECB via Frankfurter.
+  function logRate(php, src, onDate) {
+    if (!(php > 0)) return;
+    if (!Array.isArray(state.rateLog)) state.rateLog = [];
+    var d = onDate || today();
+    state.rateLog = state.rateLog.filter(function (r) { return !(r.d === d && r.src === src); });
+    state.rateLog.push({ d: d, v: Math.round(php * 10000) / 10000, src: src });
+    if (state.rateLog.length > 500) state.rateLog = state.rateLog.slice(-500);
+    save();
+  }
+  var histCache = {};
+  function isoDaysAgo(n) { var d = new Date(); d.setDate(d.getDate() - n); return dayKey(d); }
+  function fetchHistory(days) {
+    var key = days + ":" + today();
+    if (histCache[key]) return Promise.resolve(histCache[key]);
+    var start = isoDaysAgo(days), end = today();
+    var urls = [
+      "https://api.frankfurter.dev/v1/" + start + ".." + end + "?base=GBP&symbols=PHP",
+      "https://api.frankfurter.app/" + start + ".." + end + "?from=GBP&to=PHP"
+    ];
+    var i = 0;
+    function next() {
+      if (i >= urls.length) return Promise.reject(new Error("unavailable"));
+      return fetch(urls[i++]).then(function (r) { if (!r.ok) throw new Error(); return r.json(); }).then(function (j) {
+        var pts = Object.keys(j.rates || {}).sort().map(function (d) { return { d: d, v: j.rates[d].PHP }; }).filter(function (p) { return p.v > 0; });
+        if (!pts.length) throw new Error();
+        histCache[key] = pts; return pts;
+      }).catch(next);
+    }
+    return next();
+  }
+  var histPts = [];
+  function loadHistory() {
+    var days = +$("rhRange").value;
+    $("rhChart").innerHTML = '<p class="empty" style="padding:10px 0">Loading past rates…</p>';
+    $("rhChange").textContent = ""; $("rhList").innerHTML = "";
+    fetchHistory(days).then(function (pts) { histPts = pts; renderHistory(); })
+      .catch(function () { histPts = []; renderHistory(true); });
+  }
+  function renderHistory(failed) {
+    var days = +$("rhRange").value, since = isoDaysAgo(days);
+    var mine = (state.rateLog || []).filter(function (r) { return r.src === "wise" && r.d >= since; });
+    var pts = histPts.slice(), ownOnly = !pts.length;
+    $("rhNote").textContent = ownOnly
+      ? "Couldn't load daily rates right now, so this shows only the rates saved in your tracker. Check your connection and reopen to see the full history."
+      : "Daily mid-market rates from the European Central Bank. Wise converts at the mid-market rate and charges a fee separately, so differences mostly come from the time of day. Higher means more pesos for each £.";
+    if (!pts.length) pts = (state.rateLog || []).filter(function (r) { return r.d >= since; })
+      .reduce(function (acc, r) { var f = acc.find(function (a) { return a.d === r.d; }); if (f) f.v = r.v; else acc.push({ d: r.d, v: r.v }); return acc; }, [])
+      .sort(function (a, b) { return a.d.localeCompare(b.d); });
+    if (!pts.length) {
+      $("rhChart").innerHTML = '<p class="empty" style="padding:10px 0">' + (failed ? "Couldn't load past rates right now. Check your connection and try again." : "No rates for this period yet.") + "</p>";
+      $("rhList").innerHTML = ""; $("rhChange").textContent = ""; return;
+    }
+    var first = pts[0].v, last = pts[pts.length - 1].v, diff = last - first, pct = diff / first * 100;
+    $("rhChange").className = Math.abs(pct) < 0.05 ? "rh-flat" : diff > 0 ? "rh-up" : "rh-down";
+    $("rhChange").textContent = (Math.abs(pct) < 0.05 ? "Steady " : (diff > 0 ? "▲ " : "▼ ")) + "₱" + Math.abs(diff).toFixed(2) + " (" + Math.abs(pct).toFixed(1) + "%)";
+
+    // chart
+    var W = 320, H = 96, pl = 4, pr = 4, pt = 10, pb = 18;
+    var all = pts.map(function (p) { return p.v; }).concat(mine.map(function (m) { return m.v; }));
+    var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all); if (hi - lo < 0.01) { hi += 0.05; lo -= 0.05; }
+    var t0 = parseDay(pts[0].d).getTime(), t1 = Math.max(parseDay(pts[pts.length - 1].d).getTime(), Date.now() - 864e5 / 2);
+    if (t1 === t0) t1 = t0 + 864e5;
+    var X = function (d) { return pl + (parseDay(d).getTime() - t0) / (t1 - t0) * (W - pl - pr); };
+    var Y = function (v) { return pt + (hi - v) / (hi - lo) * (H - pt - pb); };
+    var line = pts.map(function (p, i) { return (i ? "L" : "M") + X(p.d).toFixed(1) + " " + Y(p.v).toFixed(1); }).join(" ");
+    var area = line + " L" + X(pts[pts.length - 1].d).toFixed(1) + " " + (H - pb) + " L" + X(pts[0].d).toFixed(1) + " " + (H - pb) + " Z";
+    var col = diff >= 0 ? "var(--good)" : "var(--over)";
+    var fmtD = function (d) { return parseDay(d).toLocaleDateString(undefined, { day: "numeric", month: "short" }); };
+    var svg = '<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Pesos per pound, ' + fmtD(pts[0].d) + " to " + fmtD(pts[pts.length - 1].d) + ", from " + first.toFixed(2) + " to " + last.toFixed(2) + '">' +
+      '<path d="' + area + '" fill="' + col + '" opacity=".10"/>' +
+      '<path d="' + line + '" fill="none" stroke="' + col + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
+      mine.map(function (m) { return '<circle cx="' + X(m.d).toFixed(1) + '" cy="' + Y(m.v).toFixed(1) + '" r="3.5" fill="var(--brass)" stroke="var(--card)" stroke-width="1.5"><title>Wise ' + fmtD(m.d) + ": ₱" + m.v.toFixed(2) + "</title></circle>"; }).join("") +
+      '<text x="' + pl + '" y="' + (H - 4) + '" font-size="10" fill="var(--ink-soft)">' + fmtD(pts[0].d) + "</text>" +
+      '<text x="' + (W - pr) + '" y="' + (H - 4) + '" font-size="10" text-anchor="end" fill="var(--ink-soft)">' + fmtD(pts[pts.length - 1].d) + "</text>" +
+      '<text x="' + (W - pr) + '" y="' + (pt - 2) + '" font-size="10" text-anchor="end" fill="var(--ink-soft)">High ₱' + hi.toFixed(2) + "</text>" +
+      '<line id="rhCursor" x1="0" x2="0" y1="' + pt + '" y2="' + (H - pb) + '" stroke="var(--ink-soft)" stroke-dasharray="2 2" opacity="0"/>' +
+      '<circle id="rhDot" r="3.5" fill="' + col + '" opacity="0"/></svg>';
+    $("rhChart").innerHTML = svg;
+    var svgEl = $("rhChart").querySelector("svg");
+    function readout(evt) {
+      var r = svgEl.getBoundingClientRect(), x = (evt.clientX - r.left) / r.width * W, best = pts[0], bd = 1e9;
+      pts.forEach(function (p) { var dx = Math.abs(X(p.d) - x); if (dx < bd) { bd = dx; best = p; } });
+      var cx = X(best.d), cy = Y(best.v);
+      $("rhCursor").setAttribute("x1", cx); $("rhCursor").setAttribute("x2", cx); $("rhCursor").setAttribute("opacity", ".6");
+      $("rhDot").setAttribute("cx", cx); $("rhDot").setAttribute("cy", cy); $("rhDot").setAttribute("opacity", "1");
+      var w = mine.find(function (m) { return m.d === best.d; });
+      $("rhRead").textContent = parseDay(best.d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short", year: "numeric" }) +
+        ": £1 = ₱" + best.v.toFixed(4) + (w ? " · your Wise rate ₱" + w.v.toFixed(4) : "");
+    }
+    svgEl.addEventListener("pointermove", readout);
+    svgEl.addEventListener("pointerdown", readout);
+    $("rhRead").textContent = "Low ₱" + Math.min.apply(null, pts.map(function (p) { return p.v; })).toFixed(2) +
+      " · High ₱" + Math.max.apply(null, pts.map(function (p) { return p.v; })).toFixed(2) + " · tap or hover the graph for a day";
+
+    // list, newest first: mid-market and Wise side by side
+    var midBy = {}; histPts.forEach(function (p) { midBy[p.d] = p.v; });
+    var wiseBy = {}; mine.forEach(function (m) { wiseBy[m.d] = m.v; });
+    var dates = Object.keys(midBy).concat(Object.keys(wiseBy)).filter(function (d, i, a) { return a.indexOf(d) === i && d >= since; }).sort().reverse();
+    if (!histPts.length) dates = pts.map(function (p) { return p.d; }).reverse();
+    var both = dates.filter(function (d) { return midBy[d] && wiseBy[d]; });
+    if (both.length) {
+      var avg = both.reduce(function (s2, d) { return s2 + (wiseBy[d] - midBy[d]); }, 0) / both.length;
+      $("rhCmp").textContent = "On the " + both.length + (both.length === 1 ? " day" : " days") + " you recorded, your Wise rate was on average ₱" +
+        Math.abs(avg).toFixed(2) + (Math.abs(avg) < 0.005 ? " — the same as" : avg > 0 ? " better than" : " below") + " the mid-market rate.";
+    } else $("rhCmp").textContent = mine.length ? "" : "Add the rate from a Wise transfer below to compare it with mid-market.";
+    $("rhList").innerHTML = '<div class="rh-row head"><span>Date</span><span>Mid-market</span><span>Wise</span><span>Diff</span></div>' + dates.map(function (d) {
+      var mv = midBy[d], wv = wiseBy[d], df = mv && wv ? wv - mv : null;
+      return '<div class="rh-row"><span style="white-space:nowrap">' + parseDay(d).toLocaleDateString(undefined, { day: "numeric", month: "short" }) +
+        ' <small style="color:var(--ink-soft)">' + parseDay(d).toLocaleDateString(undefined, { weekday: "short" }) + "</small></span>" +
+        "<span>" + (mv ? "₱" + mv.toFixed(2) : '<span class="na">–</span>') + "</span>" +
+        "<span>" + (wv ? '<span class="wv">₱' + wv.toFixed(2) + "</span>" : '<span class="na">–</span>') + "</span>" +
+        "<span" + (df != null && Math.abs(df) >= 0.005 ? ' style="color:' + (df > 0 ? "var(--good)" : "var(--over)") + '"' : "") + ">" +
+        (df != null ? (df > 0 ? "+" : df < 0 ? "−" : "") + Math.abs(df).toFixed(2) : "") + "</span></div>";
+    }).join("");
+  }
+  $("rateHist").addEventListener("toggle", function () { if ($("rateHist").open) { if (!$("rhAddDate").value) $("rhAddDate").value = today(); loadHistory(); } });
+  $("rhAddBtn").onclick = function () {
+    var d = $("rhAddDate").value, v = parseFloat($("rhAddRate").value);
+    if (!d || d > today()) { toast("Pick a date up to today"); $("rhAddDate").focus(); return; }
+    if (!(v > 1)) { toast("Enter pesos per £1, e.g. 75.40"); $("rhAddRate").focus(); return; }
+    logRate(v, "wise", d);
+    if (d === today()) { state.rate = { value: 1 / v, source: "Wise", date: d, fetchedAt: Date.now(), manual: true }; save(); renderRate(); updatePreview(); }
+    $("rhAddRate").value = ""; $("rhAddDate").value = today();
+    var days = +$("rhRange").value;
+    if (d < isoDaysAgo(days)) { var opts = [7, 30, 90, 365], need = opts.find(function (o) { return d >= isoDaysAgo(o); }) || 365; $("rhRange").value = String(need); loadHistory(); }
+    else renderHistory(!histPts.length);
+    toast("Wise rate saved for " + parseDay(d).toLocaleDateString(undefined, { day: "numeric", month: "short" }));
+  };
+  $("rhRange").onchange = loadHistory;
 
   // ---------- Profiles ----------
   var P_COLORS = ["#2F6B4F", "#8E4D6E", "#3C6E91", "#B0613A", "#6A5ACD", "#3F8C8C", "#9C6B3E"];
