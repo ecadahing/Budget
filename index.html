@@ -764,15 +764,14 @@ td.paid { color: var(--ink-soft); }
   }
   function updatePreview() {
     var amt = parseFloat($("amt").value);
-    if (txType === "income") {
-      var dv = $("date").value, cf = dv ? defaultIncomeMonth(dv) : null;
-      $("preview").textContent = cf && cf !== dv.slice(0, 7) ? "Paid around payday, so this counts towards " + ymLabel(cf) + "'s budget. You can change this later with Edit." : "";
-      return;
-    }
-    if ($("cur").value !== "PHP") { $("preview").textContent = ""; return; }
+    var dv = $("date").value, cfm = dv ? defaultMonthFor(txType, dv) : null;
+    var carryNote = cfm && cfm !== dv.slice(0, 7) ? (txType === "income" ? "Paid around payday" : "On or after payday") +
+      ", so this counts towards " + ymLabel(cfm) + "'s budget. You can change this later with Edit." : "";
+    if (txType === "income") { $("preview").textContent = carryNote; return; }
+    if ($("cur").value !== "PHP") { $("preview").textContent = carryNote; return; }
     if (!state.rate) { $("preview").textContent = "Needs an exchange rate to convert to GBP."; return; }
-    $("preview").textContent = amt > 0 ? peso(amt) + " ≈ " + money(amt * state.rate.value) + " at today's rate"
-      : "PHP amounts are converted to GBP when you add them.";
+    $("preview").textContent = (amt > 0 ? peso(amt) + " ≈ " + money(amt * state.rate.value) + " at today's rate"
+      : "PHP amounts are converted to GBP when you add them.") + (carryNote ? " " + carryNote : "");
   }
 
   function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -1074,11 +1073,22 @@ td.paid { color: var(--ink-soft); }
     var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1, pdd = Math.min(state.payday, daysInMonth(y, m));
     return pdd >= 15 && +date.slice(8, 10) >= pdd - 3 ? nextYm(ym) : ym;
   }
-  function countsFor(t) { return t.type !== "income" ? t.date.slice(0, 7) : (t.forMonth || defaultIncomeMonth(t.date)); }
+  // Spending on or after a late-month payday is paid from the new salary, so it counts towards the next month too.
+  function defaultSpendMonth(date) {
+    var ym = date.slice(0, 7);
+    if (!state.payday) return ym;
+    var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1, pdd = Math.min(state.payday, daysInMonth(y, m));
+    return pdd >= 15 && +date.slice(8, 10) >= pdd ? nextYm(ym) : ym;
+  }
+  function defaultMonthFor(type, date) { return type === "income" ? defaultIncomeMonth(date) : defaultSpendMonth(date); }
+  function countsFor(t) {
+    if (t.type === "cardpay") return t.date.slice(0, 7);
+    return t.forMonth || defaultMonthFor(t.type, t.date);
+  }
   // What the month view shows: everything dated this month, plus income carried in from the month before
   function monthView() {
     var k = monthKey();
-    return state.tx.filter(function (t) { return t.date.slice(0, 7) === k || (t.type === "income" && countsFor(t) === k); });
+    return state.tx.filter(function (t) { return t.date.slice(0, 7) === k || countsFor(t) === k; });
   }
   function toast(msg) { var t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast._t); toast._t = setTimeout(function () { t.classList.remove("show"); }, 2200); }
 
@@ -1089,9 +1099,10 @@ td.paid { color: var(--ink-soft); }
     var txs = monthView(), mk0 = monthKey();
     var income = 0, spent = 0, byCat = {}, phpSpent = 0, phpSpentGbp = 0;
     txs.forEach(function (t) {
-      if (t.type === "expense" && t.cur === "PHP") { phpSpent += t.orig; phpSpentGbp += t.amount; }
       if (t.type === "cardpay") return;
-      if (t.type === "income") { if (countsFor(t) === mk0) income += t.amount; }
+      if (countsFor(t) !== mk0) return;
+      if (t.type === "expense" && t.cur === "PHP") { phpSpent += t.orig; phpSpentGbp += t.amount; }
+      if (t.type === "income") income += t.amount;
       else { spent += t.amount; byCat[t.category] = (byCat[t.category] || 0) + t.amount; }
     });
     var totalBudget = mainCats().reduce(function (s, c) { return s + (c.budget || 0); }, 0);
@@ -1177,19 +1188,20 @@ td.paid { color: var(--ink-soft); }
         sorted.map(function (t) {
           var c = catById(t.category), card = cardById(t.pay || t.card);
           var cardName = card ? card.name : "Removed card";
-          var cf = t.type === "income" ? countsFor(t) : null;
-          var catCell = t.type === "income" ? "Income" + (cf !== t.date.slice(0, 7)
-              ? '<span class="pay-tag carry">' + (cf === mk0 ? "Carried over from " + ymLabel(t.date.slice(0, 7), { month: "short" }) : "Counts for " + ymLabel(cf)) + "</span>" : "")
+          var cf = countsFor(t);
+          var carryTag = cf !== t.date.slice(0, 7)
+              ? '<span class="pay-tag carry">' + (cf === mk0 ? "Carried over from " + ymLabel(t.date.slice(0, 7), { month: "short" }) : "Counts for " + ymLabel(cf)) + "</span>" : "";
+          var catCell = t.type === "income" ? "Income" + carryTag
             : t.type === "cardpay" ? '<span class="cat-tag"><span class="dot" style="background:' + (card ? card.color : "#999") + '"></span>Paid ' + esc(cardName) + "</span>"
             : '<span class="cat-tag"><span class="dot" style="background:' + catColor(t.category) + '"></span>' + esc(catLabel(t.category)) + "</span>" +
-              (function () { var pi = payInfo(t.pay); return pi.kind === "cash" ? "" : '<span class="pay-tag">' + (pi.kind === "bank" ? "From " : pi.kind === "card" ? "On " : "") + esc(pi.name) + "</span>"; })();
+              (function () { var pi = payInfo(t.pay); return pi.kind === "cash" ? "" : '<span class="pay-tag">' + (pi.kind === "bank" ? "From " : pi.kind === "card" ? "On " : "") + esc(pi.name) + "</span>"; })() + carryTag;
           var d = new Date(t.date + "T00:00:00").toLocaleDateString(undefined, { day: "numeric", month: "short" });
           var sign = t.type === "income" ? "+" : t.type === "cardpay" ? "" : "−";
           if (t.type === "cardpay" && isPH(card)) {
             return "<tr><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + '</td><td class="num paid">' + peso(t.orig) + "</td>" +
               '<td><button class="edit-btn" data-edittx="' + t.id + '" aria-label="Edit transaction">Edit</button></td></tr>';
           }
-          var dim = t.type === "income" && cf !== mk0;
+          var dim = t.type !== "cardpay" && cf !== mk0;
           return "<tr" + (dim ? ' class="carried-out"' : "") + "><td>" + d + "</td><td>" + catCell + "</td><td>" + esc(t.note || "") + "</td>" +
             '<td class="num' + (t.type === "income" ? " inc" : t.type === "cardpay" ? " paid" : "") + '">' + sign + money(t.amount) +
             (t.cur === "PHP" ? '<span class="orig">' + peso(t.orig) + " @ £1 = ₱" + (1 / t.rate).toFixed(2) + "</span>" : "") + "</td>" +
@@ -1427,8 +1439,9 @@ td.paid { color: var(--ink-soft); }
         if (+cf.slice(0, 4) !== y) return;
         var mi = months[+cf.slice(5, 7) - 1]; mi.count++; mi.income += t.amount; return;
       }
-      if (+t.date.slice(0, 4) !== y) return;
-      var m = months[+t.date.slice(5, 7) - 1];
+      var ck = countsFor(t);
+      if (+ck.slice(0, 4) !== y) return;
+      var m = months[+ck.slice(5, 7) - 1];
       m.count++;
       if (t.type === "cardpay") return;
       m.spent += t.amount;
@@ -1925,7 +1938,7 @@ td.paid { color: var(--ink-soft); }
         { key: "forMonth", label: "Counts towards", type: "select", value: countsFor(t), full: true,
           options: [[t.date.slice(0, 7), ymLabel(t.date.slice(0, 7), { month: "long", year: "numeric" }) + " (when it was paid)"],
                     [nextYm(t.date.slice(0, 7)), ymLabel(nextYm(t.date.slice(0, 7)), { month: "long", year: "numeric" }) + " (carry over)"]],
-          showIf: function (v) { return v.type === "income"; } },
+          showIf: function () { return true; } },
         bill ? { key: "billnote", label: "This is the " + bill.name + " payment, so deleting it marks the bill as not paid.", type: "note" } : null
       ].filter(Boolean),
       onSave: function (v) {
@@ -1938,12 +1951,10 @@ td.paid { color: var(--ink-soft); }
         if (v.type === "expense") {
           t.category = v.cat || (state.categories[0] && state.categories[0].id) || null;
           t.pay = v.pay; t.cardAmt = cardAmtFor(v.pay, v.cur, t.orig, t.amount);
-        } else {
-          t.category = null; t.pay = undefined; t.cardAmt = undefined;
-          var dm = v.date.slice(0, 7), fm = v.forMonth;
-          if (fm !== dm && fm !== nextYm(dm)) fm = defaultIncomeMonth(v.date);
-          if (fm === defaultIncomeMonth(v.date)) delete t.forMonth; else t.forMonth = fm;
-        }
+        } else { t.category = null; t.pay = undefined; t.cardAmt = undefined; }
+        var dm = v.date.slice(0, 7), fm = v.forMonth, def = defaultMonthFor(v.type, v.date);
+        if (fm !== dm && fm !== nextYm(dm)) fm = def;
+        if (fm === def) delete t.forMonth; else t.forMonth = fm;
       },
       onDelete: function () { state.tx = state.tx.filter(function (x) { return x !== t; }); },
       deleteLabel: "Delete", deletedMsg: "Transaction deleted"
