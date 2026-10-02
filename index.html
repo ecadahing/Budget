@@ -369,6 +369,7 @@ td.paid { color: var(--ink-soft); }
         <summary>Don't have either?</summary>
         <p>The data is encrypted, so it can't be opened without them. You can replace it with a backup file instead, which permanently discards the locked data.</p>
         <button class="small-btn" id="lkRestore">Restore from a backup</button>
+        <button class="small-btn" id="lkFresh">Start this profile fresh</button>
         <button class="small-btn danger" id="lkDelete">Delete this profile</button>
       </details>
     </div>
@@ -546,6 +547,18 @@ td.paid { color: var(--ink-soft); }
   })();
   if (!profiles.list.some(function (p) { return p.id === profiles.current; })) profiles.current = profiles.list[0].id;
   function saveProfiles() { try { localStorage.setItem(PKEY, JSON.stringify(profiles)); } catch (e) {} }
+  // Locks were removed from the tracker. Any profile still marked locked whose data is no longer
+  // encrypted (for example after restoring a backup) is unlocked here, for every profile.
+  (function () {
+    var changed = false;
+    profiles.list.forEach(function (p) {
+      if (!p.locked) return;
+      var enc = false;
+      try { var d = JSON.parse(localStorage.getItem(keyFor(p.id))); enc = !!(d && d.enc); } catch (e) {}
+      if (!enc) { p.locked = false; delete p.hint; changed = true; }
+    });
+    if (changed) saveProfiles();
+  })();
   var KEY = keyFor(profiles.current);
   var PALETTE = ["#2F6B4F", "#A87A22", "#3C6E91", "#8E4D6E", "#B0613A", "#5B7F2E", "#6A5ACD", "#3F8C8C", "#9C6B3E", "#7A7F87"];
   var DEFAULT = {
@@ -1921,6 +1934,14 @@ td.paid { color: var(--ink-soft); }
   }
   $("lkBtn").onclick = tryUnlock;
   $("lkRestore").onclick = function () { $("restoreFile").click(); };
+  $("lkFresh").onclick = function () {
+    var cp = currentProfile();
+    var typed = prompt("This permanently discards " + cp.name + "'s locked data and starts the profile empty. Type DISCARD to confirm.");
+    if (typed !== "DISCARD") return;
+    cp.locked = false; delete cp.hint; saveProfiles();
+    try { localStorage.removeItem(keyFor(cp.id)); } catch (e) {}
+    state = blank(); save(); afterUnlock(); toast(cp.name + " started fresh");
+  };
   // Restoring into a profile that is still locked replaces the locked data and removes the lock
   function clearLockForRestore() {
     var cp = currentProfile();
